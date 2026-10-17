@@ -14,3 +14,4 @@ test-results/
 *.egg-info/
 *.tsbuildinfo
 premium-audit.json
+frontend/browser-results/

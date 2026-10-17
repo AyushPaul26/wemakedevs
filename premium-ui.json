@@ -3,21 +3,36 @@
   "sourceRoots": ["frontend/src"],
   "locale": "en-US",
   "canonicalMap": "UX-CONTRACT.md",
-  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast", "CRUD"],
+  "requiredCapabilities": [
+    "Select/Listbox",
+    "Form",
+    "Scrollbar",
+    "Toast",
+    "CRUD"
+  ],
   "ownership": {
     "Select/Listbox": "native",
     "Date": "typed"
   },
-  "requiredCommands": ["typecheck", "unit", "build", "design", "browser"],
+  "requiredCommands": [
+    "typecheck",
+    "unit",
+    "build",
+    "design",
+    "browser",
+    "workflowBrowser"
+  ],
   "commands": {
     "typecheck": "npm --prefix frontend run typecheck",
     "unit": "npm --prefix frontend test",
     "build": "npm --prefix frontend run build",
-    "design": "npm exec --yes --package=@google/design.md -- designmd lint DESIGN.md",
-    "browser": "node scripts/browser-check.mjs"
+    "design": "npm_config_cache=/tmp/relay-npm-cache npm exec --yes --package=@google/design.md -- designmd lint DESIGN.md",
+    "browser": "node scripts/browser-check.mjs",
+    "workflowBrowser": "node frontend/browser-workflows.mjs"
   },
   "evidence": {
     "crudFullFlow": "scripts/browser-check.mjs",
-    "failurePaths": "docs/verification.md"
+    "failurePaths": "frontend/src/features/interactions.test.tsx",
+    "workflowInteractions": "frontend/browser-workflows.mjs"
   }
 }

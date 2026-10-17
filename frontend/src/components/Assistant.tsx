@@ -18,14 +18,28 @@ import {
 } from "lucide-react";
 import type { Investigation, Source } from "../types";
 import { api, errorMessage } from "../api";
-import { SourceButton, Status } from "./ui";
+import { Button, Modal, SourceButton, Status } from "./ui";
+import { AttachmentPicker } from "../features/evidence/AttachmentPicker";
+import {
+  EvidenceViewer,
+  citationLabel,
+} from "../features/evidence/EvidenceViewer";
+import type { EvidenceRef, SourceRef } from "../features/evidence/types";
+import { uniqueRefs, uniqueEvidenceRefs } from "../features/workflows/state";
 const EvidenceContext = createContext<{
   sources: Source[];
   onSource: (id: string) => void;
   onActions: () => void;
-}>({ sources: [], onSource: () => {}, onActions: () => {} });
+  onEvidence: (evidence: EvidenceRef) => void;
+}>({
+  sources: [],
+  onSource: () => {},
+  onActions: () => {},
+  onEvidence: () => {},
+});
 function AssistantMessage() {
-  const { sources, onSource, onActions } = useContext(EvidenceContext);
+  const { sources, onSource, onActions, onEvidence } =
+    useContext(EvidenceContext);
   const investigation = useAuiState(
     (state) =>
       state.message.metadata.custom?.investigation as Investigation | undefined,
@@ -47,15 +61,33 @@ function AssistantMessage() {
       {investigation && (
         <>
           <div className="source-list">
-            {investigation.source_ids.map((id) => (
-              <SourceButton
-                key={id}
-                id={id}
-                sources={sources}
-                onSource={onSource}
-                compact
-              />
-            ))}
+            {uniqueEvidenceRefs(investigation.evidence_refs || []).map(
+              (ref) => (
+                <button
+                  className="source-link"
+                  key={ref.chunk_id}
+                  onClick={() => onEvidence(ref)}
+                >
+                  {citationLabel(ref)}
+                </button>
+              ),
+            )}
+            {[...new Set(investigation.source_ids)]
+              .filter(
+                (id) =>
+                  !investigation.evidence_refs?.some(
+                    (ref) => ref.source_id === id,
+                  ),
+              )
+              .map((id) => (
+                <SourceButton
+                  key={id}
+                  id={id}
+                  sources={sources}
+                  onSource={onSource}
+                  compact
+                />
+              ))}
           </div>
           <details className="agent-steps">
             <summary>
@@ -90,6 +122,11 @@ function AssistantMessage() {
               <ArrowUpRight size={14} />
             </button>
           )}
+          {investigation.run_id && (
+            <a href={`#workflows/${encodeURIComponent(investigation.run_id)}`}>
+              Open related workflow
+            </a>
+          )}
           <div className="saved-note">
             <Check size={12} />
             Saved to company memory
@@ -112,13 +149,20 @@ export function Assistant({
   onSource,
   onResult,
   onActions,
+  runId,
+  onClearRun,
 }: {
   sources: Source[];
   mode: "demo" | "live";
   onSource: (id: string) => void;
   onResult: (result: Investigation) => void;
   onActions: () => void;
+  runId?: string;
+  onClearRun?: () => void;
 }) {
+  const [attachments, setAttachments] = useState<SourceRef[]>([]);
+  const [picker, setPicker] = useState(false);
+  const [evidence, setEvidence] = useState<EvidenceRef | undefined>();
   const [messages, setMessages] = useState<ThreadMessageLike[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
@@ -150,7 +194,12 @@ export function Assistant({
         { id: userId, role: "user", content: question },
       ]);
       try {
-        const result = await api.investigate(question, session.current);
+        const result = await api.investigate(
+          question,
+          session.current,
+          attachments,
+          runId,
+        );
         setMessages((current) => [
           ...current,
           {
@@ -193,7 +242,9 @@ export function Assistant({
         />
       </div>
       <AssistantRuntimeProvider runtime={runtime}>
-        <EvidenceContext.Provider value={{ sources, onSource, onActions }}>
+        <EvidenceContext.Provider
+          value={{ sources, onSource, onActions, onEvidence: setEvidence }}
+        >
           <ThreadPrimitive.Root className="assistant-thread">
             <ThreadPrimitive.Viewport className="assistant-viewport">
               <div className="assistant-intro">
@@ -240,6 +291,55 @@ export function Assistant({
                   ? "Guided demo · source-backed responses"
                   : "Live model · source-backed responses"}
               </div>
+              {runId && (
+                <div className="run-context-chip">
+                  <a href={`#workflows/${encodeURIComponent(runId)}`}>
+                    Workflow: {runId}
+                  </a>
+                  <Button
+                    variant="ghost"
+                    onClick={onClearRun}
+                    aria-label="Clear workflow question context"
+                  >
+                    ×
+                  </Button>
+                  <small>
+                    Ask about permitted stored outputs and decisions.
+                  </small>
+                </div>
+              )}
+              <div className="attachment-chips">
+                {attachments.map((ref) => (
+                  <span
+                    className="badge"
+                    key={`${ref.source_id}-${ref.version_id}`}
+                  >
+                    {sources.find((source) => source.id === ref.source_id)
+                      ?.title || ref.source_id}{" "}
+                    · {ref.version_id}
+                    <button
+                      aria-label={`Remove ${ref.source_id}`}
+                      onClick={() =>
+                        setAttachments((items) =>
+                          items.filter((item) => item !== ref),
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                onClick={() => setPicker(true)}
+                disabled={running}
+              >
+                Attach exact sources ({attachments.length}/5)
+              </Button>
+              <a className="text-link" href="#workflows">
+                Start an invoice review
+              </a>
               <ComposerPrimitive.Root className="composer" noValidate>
                 <ComposerPrimitive.Input
                   placeholder="Ask about your company…"
@@ -267,6 +367,29 @@ export function Assistant({
           </ThreadPrimitive.Root>
         </EvidenceContext.Provider>
       </AssistantRuntimeProvider>
+      <Modal
+        open={picker}
+        onOpenChange={setPicker}
+        title="Attach sources to your question"
+        description="Select exact versions. Asking a question never starts a workflow."
+        wide
+      >
+        <AttachmentPicker
+          label="Question attachments"
+          multiple
+          value={attachments}
+          onChange={(refs) => setAttachments(uniqueRefs(refs))}
+          limit={5}
+        />
+        <Button variant="primary" onClick={() => setPicker(false)}>
+          Use selected sources
+        </Button>
+      </Modal>
+      <EvidenceViewer
+        sourceId={evidence?.source_id || null}
+        evidence={evidence}
+        onClose={() => setEvidence(undefined)}
+      />
     </aside>
   );
 }

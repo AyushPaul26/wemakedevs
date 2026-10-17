@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
   BookOpen,
@@ -27,7 +26,6 @@ import type {
   GraphNode,
   Investigation,
   Ripple,
-  Source,
 } from "./types";
 import { api, errorMessage, formatDate } from "./api";
 import { mergeActions, mergeMemories } from "./state";
@@ -44,20 +42,54 @@ import {
   Status,
   dialogReturnTarget,
 } from "./components/ui";
-type View = "overview" | "knowledge" | "memory" | "actions";
+import { readRoute, type View } from "./routes";
+import { useAuth } from "./auth/AuthProvider";
+import { LoginPage } from "./auth/LoginPage";
+import { KnowledgePage } from "./features/evidence/KnowledgePage";
+import { EvidenceViewer } from "./features/evidence/EvidenceViewer";
+import { WorkflowPage } from "./features/workflows/WorkflowPage";
+import { SessionDraftProvider } from "./components/SessionDrafts";
+import { ApprovalInbox } from "./features/workflows/ApprovalInbox";
 const navigation = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
   { id: "memory", label: "Memory", icon: Clock3 },
   { id: "actions", label: "Actions", icon: ListTodo },
+  { id: "workflows", label: "Workflows", icon: GitBranch },
+  { id: "approvals", label: "Approvals", icon: Check },
 ] as const;
-const getView = (): View => {
-  const hash = window.location.hash.slice(1);
-  return navigation.some((item) => item.id === hash)
-    ? (hash as View)
-    : "overview";
-};
+const getView = (): View => readRoute().view;
 function App() {
+  const { session, loading, error, login, refresh, epoch } = useAuth();
+  if (loading)
+    return (
+      <main className="login-page">
+        <Status>Checking your session…</Status>
+      </main>
+    );
+  if (!session)
+    return (
+      <>
+        {error && (
+          <div className="session-error">
+            <Status error>{error}</Status>
+            <Button onClick={refresh}>Retry connection</Button>
+          </div>
+        )}
+        <LoginPage onLogin={login} />
+      </>
+    );
+  return (
+    <SessionDraftProvider key={`${session.member.id}-${epoch}`}>
+      <Workspace />
+    </SessionDraftProvider>
+  );
+}
+function Workspace() {
+  const { session, logout } = useAuth();
+  const [logoutError, setLogoutError] = useState("");
+  const [assistantRunId, setAssistantRunId] = useState<string>();
+  const [routeId, setRouteId] = useState(readRoute().id);
   const [data, setData] = useState<Bootstrap | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -76,20 +108,13 @@ function App() {
   const [selectedMemory, setSelectedMemory] = useState<Investigation | null>(
     null,
   );
+  const [legacySource, setLegacySource] = useState(true);
   const [sourceId, setSourceId] = useState<string | null>(null);
-  const [source, setSource] = useState<Source | null>(null);
-  const [sourceError, setSourceError] = useState("");
-  const [sourceVersion, setSourceVersion] = useState(0);
   const [noteOpen, setNoteOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  const [query, setQuery] = useState(
-    () => new URLSearchParams(window.location.search).get("q") || "",
-  );
-  const [sourceLimit, setSourceLimit] = useState(8);
   const [actionFilter, setActionFilter] = useState<"all" | Action["status"]>(
     "all",
   );
-  const searchRef = useRef<HTMLInputElement>(null);
   const sourceOpener = useRef<HTMLElement | null>(null);
   const listRequest = useRef(0);
   const load = useCallback(async () => {
@@ -115,7 +140,10 @@ function App() {
     void load();
   }, [load]);
   useEffect(() => {
-    const change = () => setView(getView());
+    const change = () => {
+      setView(getView());
+      setRouteId(readRoute().id);
+    };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);
@@ -174,28 +202,12 @@ function App() {
   useEffect(() => {
     if (data) void refreshList(view);
   }, [view, !!data, refreshList]);
-  useEffect(() => {
-    if (!sourceId) return;
-    let current = true;
-    setSource(null);
-    setSourceError("");
-    api
-      .source(sourceId)
-      .then((result) => {
-        if (current) setSource(result);
-      })
-      .catch((err) => {
-        if (current) setSourceError(errorMessage(err));
-      });
-    return () => {
-      current = false;
-    };
-  }, [sourceId, sourceVersion]);
   function goTo(next: View) {
     window.location.hash = next;
     setView(next);
   }
-  function openSource(id: string) {
+  function openSource(id: string, legacy = true) {
+    setLegacySource(legacy);
     sourceOpener.current = dialogReturnTarget(
       document.activeElement as HTMLElement,
     );
@@ -216,20 +228,7 @@ function App() {
         : "Task marked complete.",
     );
   }
-  function search(value: string) {
-    setQuery(value);
-    setSourceLimit(8);
-    const url = new URL(window.location.href);
-    if (value) url.searchParams.set("q", value);
-    else url.searchParams.delete("q");
-    window.history.replaceState(null, "", url);
-  }
   const sources = data?.sources || [];
-  const filteredSources = sources.filter((item) =>
-    `${item.title} ${item.author} ${item.type} ${item.excerpt}`
-      .toLocaleLowerCase()
-      .includes(query.toLocaleLowerCase()),
-  );
   const filteredActions = actions.filter(
     (item) => actionFilter === "all" || item.status === actionFilter,
   );
@@ -257,6 +256,12 @@ function App() {
             relay<span className="brand-period">.</span>
           </span>
         </a>
+        <div className="mobile-session">
+          <span>{session?.member.display_name}</span>
+          <Button variant="ghost" onClick={logout}>
+            Sign out
+          </Button>
+        </div>
         <div className="workspace-card">
           <span className="workspace-avatar">M</span>
           <div>
@@ -271,6 +276,7 @@ function App() {
             <a
               key={item.id}
               href={`#${item.id}`}
+              aria-label={item.label}
               className={view === item.id ? "active" : ""}
               aria-current={view === item.id ? "page" : undefined}
             >
@@ -347,18 +353,34 @@ function App() {
               className="topbar-search"
               onClick={() => {
                 goTo("knowledge");
-                setTimeout(() => searchRef.current?.focus(), 0);
+                setTimeout(
+                  () =>
+                    document
+                      .querySelector<HTMLInputElement>(
+                        '[aria-label="Search knowledge"]',
+                      )
+                      ?.focus(),
+                  0,
+                );
               }}
             >
               <Search size={17} />
               <span>Find knowledge</span>
             </Button>
-            <span
-              className="profile-avatar"
-              aria-label="Meridian sample workspace"
+            <span className="member-name">{session?.member.display_name}</span>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                setLogoutError("");
+                try {
+                  await logout();
+                } catch (err) {
+                  setLogoutError(errorMessage(err));
+                }
+              }}
             >
-              M
-            </span>
+              Sign out
+            </Button>
           </div>
         </header>
         <div className="content-layout">
@@ -377,7 +399,11 @@ function App() {
                       ? "Knowledge with a source."
                       : view === "memory"
                         ? "A little wiser, every time."
-                        : "From insight to action."}
+                        : view === "workflows"
+                          ? "Work, with a clear path."
+                          : view === "approvals"
+                            ? "Your approval, in context."
+                            : "From insight to action."}
                 </h1>
                 <p>
                   {view === "overview"
@@ -386,7 +412,11 @@ function App() {
                       ? "The original context behind every answer and connection."
                       : view === "memory"
                         ? "Past investigations, remembered. Evidence you can return to."
-                        : "Review the next steps. Nothing moves forward without your approval."}
+                        : view === "workflows"
+                          ? "Follow evidence, approvals, and recorded results."
+                          : view === "approvals"
+                            ? "Review the exact scope before permitted work resumes."
+                            : "Review internal manual tasks and record team completion."}
                 </p>
               </div>
               <Button
@@ -398,6 +428,7 @@ function App() {
                 <span>Add knowledge</span>
               </Button>
             </div>
+            {logoutError && <Status error>{logoutError}</Status>}
             {loading && (
               <div className="page-state">
                 <Status>Connecting to the Meridian company graph…</Status>
@@ -510,81 +541,32 @@ function App() {
                   </>
                 )}
                 {view === "knowledge" && (
-                  <section>
-                    <div className="section-toolbar">
-                      <div className="search-field">
-                        <Search size={17} />
-                        <input
-                          ref={searchRef}
-                          type="search"
-                          aria-label="Search knowledge"
-                          value={query}
-                          onChange={(event) => search(event.target.value)}
-                          placeholder="Search documents, decisions, and people…"
-                        />
-                        {query && (
-                          <button
-                            aria-label="Clear knowledge search"
-                            onClick={() => {
-                              search("");
-                              searchRef.current?.focus();
-                            }}
-                          >
-                            <X size={16} />
-                          </button>
-                        )}
-                      </div>
-                      <span>{filteredSources.length} sources</span>
-                    </div>
-                    {filteredSources.length ? (
-                      <div className="source-grid">
-                        {filteredSources.slice(0, sourceLimit).map((item) => (
-                          <article className="source-card" key={item.id}>
-                            <div className="source-card-type">
-                              <span>
-                                <FileText size={19} />
-                              </span>
-                              <span className="badge">{item.type}</span>
-                            </div>
-                            <h2>
-                              <button onClick={() => openSource(item.id)}>
-                                {item.title}
-                                <ArrowUpRight size={15} />
-                              </button>
-                            </h2>
-                            <p>{item.excerpt}</p>
-                            <div>
-                              <span>{item.author}</span>
-                              <span>{formatDate(item.updated_at)}</span>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <Empty
-                        title={
-                          query
-                            ? "No matching sources"
-                            : "Start with what you know"
-                        }
-                      >
-                        {query
-                          ? "Try a different term, or clear your search."
-                          : "Add a note to give your team a shared reference."}
-                      </Empty>
-                    )}
-                    {filteredSources.length > sourceLimit && (
-                      <div className="load-more">
-                        <Button
-                          onClick={() => setSourceLimit((limit) => limit + 8)}
-                        >
-                          Load more sources
-                          <ArrowDownToLine size={15} />
-                        </Button>
-                      </div>
-                    )}
-                  </section>
+                  <KnowledgePage
+                    onSource={(id) => openSource(id, false)}
+                    onAddNote={() => setNoteOpen(true)}
+                  />
                 )}
+                {view === "workflows" && (
+                  <WorkflowPage
+                    runId={routeId}
+                    projects={data.nodes.filter(
+                      (node) => node.kind === "project",
+                    )}
+                    mode={data.capabilities.mode}
+                    onAskRun={(id) => {
+                      setAssistantRunId(id);
+                      setTimeout(() => {
+                        const composer =
+                          document.querySelector<HTMLTextAreaElement>(
+                            '[aria-label="Ask Relay a question"]',
+                          );
+                        composer?.focus();
+                        composer?.scrollIntoView({ block: "center" });
+                      }, 0);
+                    }}
+                  />
+                )}
+                {view === "approvals" && <ApprovalInbox approvalId={routeId} />}
                 {view === "memory" && (
                   <section>
                     <div className="section-toolbar">
@@ -716,6 +698,8 @@ function App() {
               onSource={openSource}
               onResult={investigated}
               onActions={() => goTo("actions")}
+              runId={assistantRunId}
+              onClearRun={() => setAssistantRunId(undefined)}
             />
           )}
         </div>
@@ -788,39 +772,12 @@ function App() {
           </div>
         )}
       </Modal>
-      <Modal
-        open={!!sourceId}
+      <EvidenceViewer
+        sourceId={sourceId}
+        legacyCitation={legacySource}
+        onClose={() => setSourceId(null)}
         returnFocusTo={sourceOpener.current}
-        onOpenChange={(open) => {
-          if (!open) setSourceId(null);
-        }}
-        title={source?.title || "Source evidence"}
-        description="Original context from the fictional Meridian workspace."
-      >
-        {sourceError ? (
-          <>
-            <Status error>{sourceError}</Status>
-            <Button onClick={() => setSourceVersion((version) => version + 1)}>
-              Retry source
-            </Button>
-          </>
-        ) : !source ? (
-          <Status>Loading original source…</Status>
-        ) : (
-          <article className="source-detail">
-            <div className="source-detail-meta">
-              <span className="badge">{source.type}</span>
-              <span>{source.author}</span>
-              <span>Updated {formatDate(source.updated_at)}</span>
-            </div>
-            <div className="source-original">{source.excerpt}</div>
-            <div className="source-provenance">
-              <Database size={14} />
-              Stored in the company graph · {source.id}
-            </div>
-          </article>
-        )}
-      </Modal>
+      />
       <Modal
         open={!!selectedMemory}
         onOpenChange={(open) => {

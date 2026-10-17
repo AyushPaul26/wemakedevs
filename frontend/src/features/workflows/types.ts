@@ -1,0 +1,105 @@
+import type { SourceRef, EvidenceRef } from "../evidence/types";
+export type RunInputs = {
+  invoice: SourceRef;
+  purchase_order: SourceRef;
+  context: SourceRef[];
+  automation: "review_changes" | "auto_permitted";
+  output_audience: string[];
+};
+export type RunCreate = RunInputs & {
+  template: "invoice_review";
+  project_id: string;
+};
+export type ExecutionReceipt = {
+  id: string;
+  tool: string;
+  input_hash: string;
+  approval_ids: string[];
+  status: string;
+  started_at?: string;
+  completed_at?: string;
+  attempt?: number;
+};
+export type WorkflowStep = {
+  execution?: ExecutionReceipt;
+  id: string;
+  key?: string;
+  logical_key?: string;
+  name?: string;
+  label?: string;
+  tool?: string;
+  status: string;
+  depends_on?: string[];
+  reused?: boolean;
+  result?: unknown;
+  error?: string;
+  evidence_refs?: EvidenceRef[];
+};
+export type Approval = {
+  id: string;
+  run_id: string;
+  plan_id?: string;
+  gate_kind?: string;
+  reviewer_id?: string;
+  reviewer_name?: string;
+  requester_id?: string;
+  status: string;
+  scope_hash: string;
+  revision?: number;
+  expected_revision?: number;
+  expires_at?: string | number;
+  reason?: string;
+  allowed_controls?: string[];
+  can_decide?: boolean;
+  source_refs?: SourceRef[];
+  input_versions?: SourceRef[];
+  output_audience?: string[];
+  tools?: string[];
+  scope?: Record<string, unknown>;
+};
+export type Artifact = {
+  id: string;
+  kind?: string;
+  title?: string;
+  stale?: boolean;
+  content_hash?: string;
+};
+export type WorkflowCase = {
+  stale?: boolean;
+  owner_entity_id?: string;
+  current_revision?: Record<string, unknown>;
+  id: string;
+  title?: string;
+  status?: string;
+  revision?: number;
+  description?: string;
+};
+export type RunSnapshot = {
+  id: string;
+  template: "invoice_review";
+  current_plan_id: string;
+  generation: number;
+  revision: number;
+  status: string;
+  steps: WorkflowStep[];
+  approvals: Approval[];
+  outputs: Artifact[];
+  cases: WorkflowCase[];
+  allowed_controls: string[];
+  created_at: string;
+  updated_at: string;
+  inputs?: RunInputs;
+  project_id?: string;
+  mode?: "demo" | "live";
+};
+export type WorkflowEvent = {
+  id: string;
+  kind?: string;
+  type?: string;
+  message?: string;
+  detail?: unknown;
+  created_at?: string;
+  actor_id?: string;
+  [key: string]: unknown;
+};
+export type Page<T> = { items: T[]; next_cursor?: string | null };

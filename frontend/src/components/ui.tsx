@@ -166,7 +166,10 @@ export function SourceButton({
       onClick={() => onSource(id)}
     >
       <FileText size={14} />
-      <span>{source?.title ?? "View source"}</span>
+      <span>
+        {source?.title ?? "View source"}
+        <small className="citation-version">Version not recorded</small>
+      </span>
       <ArrowUpRight size={13} />
     </button>
   );

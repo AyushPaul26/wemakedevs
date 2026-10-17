@@ -5,7 +5,13 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     port: 5173,
-    proxy: { "/api": "http://127.0.0.1:8000" },
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8000",
+        // Preserve the browser Host so the backend can compare it with Origin.
+        changeOrigin: false,
+      },
+    },
   },
   test: {
     environment: "jsdom",

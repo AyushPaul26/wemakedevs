@@ -9,8 +9,11 @@ import "@fontsource/sora/600.css";
 import "@xyflow/react/dist/style.css";
 import "./styles.css";
 import App from "./App";
+import { AuthProvider } from "./auth/AuthProvider";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>,
 );

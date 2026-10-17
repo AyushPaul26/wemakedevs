@@ -2668,3 +2668,520 @@ textarea[aria-invalid="true"] {
     background: ButtonText;
   }
 }
+
+/* Review workflows share the existing Relay controls and token owners. */
+.login-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--color-bg);
+}
+.login-card {
+  width: min(100%, 440px);
+  padding: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.login-card .brand {
+  color: var(--color-ink);
+  margin-bottom: 36px;
+}
+.login-card h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  margin: 12px 0;
+}
+.login-card p {
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+.login-card form,
+.workflow-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.login-card form {
+  margin-top: 24px;
+}
+.login-card label,
+.workflow-form > label,
+.approval-card > label,
+.version-replace label {
+  font-weight: 600;
+  font-size: 13px;
+}
+.login-card input,
+.workflow-form input:not([type="checkbox"]):not([type="radio"]),
+.workflow-form select,
+.approval-card textarea,
+.version-replace input,
+.source-detail select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+}
+textarea {
+  resize: none;
+}
+.session-error {
+  padding: 16px;
+}
+.member-name {
+  font-size: 13px;
+  max-width: 160px;
+  overflow-wrap: anywhere;
+}
+.muted {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.workflow-page > section,
+.workflow-page > .run-summary {
+  margin-top: 24px;
+}
+.workflow-page h2,
+.approval-card h2 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.workflow-page h3,
+.revision-preview h3 {
+  font-size: 14px;
+}
+.workflow-page p,
+.approval-card p {
+  line-height: 1.6;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+.workflow-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.workflow-intro p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+.attachment-picker {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+.attachment-picker legend {
+  padding: 0 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.attachment-picker .search-field {
+  margin-bottom: 10px;
+  width: 100%;
+}
+.attachment-options {
+  max-height: 220px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.attachment-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px 0;
+  cursor: pointer;
+}
+.attachment-option input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--color-brand);
+  flex-shrink: 0;
+}
+.attachment-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.attachment-option strong {
+  display: block;
+  font-size: 13px;
+}
+.attachment-option small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+.attachment-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.attachment-chips .badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.attachment-chips button {
+  margin-left: 6px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  min-height: 24px;
+  min-width: 24px;
+}
+.workflow-output,
+.approval-card,
+.run-summary,
+.revision-preview {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  background: var(--color-surface);
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.workflow-output {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.workflow-output h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.workflow-output a {
+  color: var(--color-brand);
+  overflow-wrap: anywhere;
+}
+.workflow-output p {
+  margin: 0;
+  font-size: 13px;
+}
+.workflow-output > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.workflow-output .button {
+  flex-shrink: 0;
+}
+.scope-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.scope-grid dt {
+  color: var(--color-muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.scope-grid dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.approval-card textarea {
+  margin: 8px 0 12px;
+}
+pre {
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--color-bg);
+  padding: 12px;
+  border-radius: var(--radius-control);
+}
+.workflow-graph {
+  height: 310px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.workflow-node {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: var(--radius-control);
+  padding: 14px;
+  font-size: 12px;
+}
+.workflow-node-completed {
+  border-color: var(--color-success);
+}
+.workflow-node-waiting_approval,
+.workflow-node-stale {
+  border-color: var(--color-brand);
+}
+.workflow-node-failed,
+.workflow-node-rejected {
+  border-color: var(--color-impact);
+}
+.workflow-step-list {
+  padding-left: 24px;
+  display: grid;
+  gap: 12px;
+}
+.workflow-step-list li {
+  padding: 12px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.workflow-step-list li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.workflow-step-list p {
+  font-size: 13px;
+}
+.state-completed,
+.state-approved {
+  color: var(--color-success);
+  background: var(--color-surface);
+  border: 1px solid currentColor;
+}
+.state-failed,
+.state-rejected {
+  color: var(--color-impact-ink);
+  background: #fff0ec;
+}
+.state-stale,
+.state-waiting_approval,
+.state-pending,
+.state-changes_requested {
+  color: var(--color-brand);
+  background: #efedfc;
+}
+.workflow-timeline ol {
+  padding-left: 22px;
+}
+.workflow-timeline li {
+  padding: 0 0 18px 8px;
+}
+.workflow-timeline small {
+  display: block;
+  color: var(--color-muted);
+  margin-top: 6px;
+}
+.workflow-timeline summary,
+.provenance summary {
+  cursor: pointer;
+  margin: 10px 0;
+}
+.evidence-chunk {
+  border-bottom: 1px solid var(--color-border);
+  padding: 18px 0;
+}
+.evidence-chunk small {
+  color: var(--color-muted);
+}
+.selected-evidence {
+  border-left: 3px solid var(--color-brand);
+  padding-left: 14px;
+}
+.version-replace {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+}
+.workflow-page .section-toolbar {
+  flex-wrap: wrap;
+}
+.form-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 700px) {
+  .workflow-inputs,
+  .scope-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workflow-output {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .member-name {
+    display: none;
+  }
+  .topbar-actions {
+    gap: 4px;
+  }
+  .workflow-graph {
+    height: 250px;
+  }
+  .approval-card,
+  .run-summary,
+  .workflow-output {
+    padding: 16px;
+  }
+  .login-card {
+    padding: 24px;
+  }
+}
+.mobile-session {
+  display: none;
+}
+.run-context-chip {
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-brand-soft);
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.run-context-chip small {
+  display: block;
+  color: var(--color-muted);
+}
+@media (max-width: 640px) {
+  .sidebar nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .sidebar nav a {
+    min-width: 0;
+    justify-content: center;
+  }
+  .sidebar {
+    position: relative;
+  }
+  .mobile-session {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    color: var(--color-sidebar-muted);
+    font-size: 11px;
+    max-width: 65%;
+  }
+  .mobile-session > span {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-session .button {
+    color: var(--color-sidebar-muted);
+  }
+  .section-toolbar {
+    flex-wrap: wrap;
+  }
+  .section-toolbar .search-field {
+    min-width: 0;
+    width: 100%;
+  }
+}
+.scope-file {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.scope-file span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.approval-scope ul {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.8;
+  padding-left: 20px;
+}
+.approval-scope h3 {
+  margin: 18px 0 8px;
+}
+.workflow-graph .react-flow__attribution a {
+  color: var(--color-muted);
+}
+.citation-version {
+  display: block;
+  font-size: 9px;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.approval-preview-summary {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+.approval-preview-summary h4 {
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.comparison-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+.comparison-totals dt {
+  color: var(--color-muted);
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+.comparison-totals dd {
+  margin: 0;
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.approval-scope .preview-findings {
+  max-height: 240px;
+  overflow: auto;
+  padding: 0 0 0 20px;
+  scrollbar-gutter: stable;
+}
+.preview-findings li {
+  padding: 8px 0;
+}
+.preview-findings li p {
+  margin: 4px 0;
+}
+.preview-findings small {
+  color: var(--color-muted);
+}
+.preview-evidence {
+  max-height: 160px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  margin-bottom: 14px;
+}
+.preview-evidence .source-link {
+  display: flex;
+  margin-bottom: 6px;
+  white-space: normal;
+  text-align: left;
+}
+@media (max-width: 640px) {
+  .comparison-totals {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+}

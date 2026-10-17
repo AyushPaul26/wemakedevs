@@ -24,14 +24,7 @@ export type GraphEdge = {
   label: string;
   source_ids: string[];
 };
-export type Source = {
-  id: string;
-  title: string;
-  type: "document" | "ticket" | "decision" | "incident" | "code";
-  excerpt: string;
-  updated_at: string;
-  author: string;
-};
+export type Source = import("./features/evidence/types").SourceSummary;
 export type Action = {
   id: string;
   title: string;
@@ -59,6 +52,8 @@ export type Investigation = {
   actions: Action[];
   created_at: string;
   mode: "demo" | "live";
+  evidence_refs?: import("./features/evidence/types").EvidenceRef[];
+  run_id?: string;
 };
 export type Ripple = {
   scenario_id: string;
