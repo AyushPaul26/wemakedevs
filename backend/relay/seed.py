@@ -1,5 +1,7 @@
 """Fictional, source-backed Meridian facts; no production company data."""
 
+SEED_VERSION = 1
+
 SAMPLE_UPDATED_AT = "2026-10-15T09:00:00+00:00"
 
 

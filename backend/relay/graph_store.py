@@ -7,13 +7,11 @@ shape while indexed properties and explicit relationships support graph retrieva
 
 import hashlib
 import json
-import os
 import re
 from datetime import datetime, timezone
-from threading import Lock
 from uuid import uuid4
 
-from falkordb import FalkorDB
+from .database import GraphDatabase
 
 from .seed import EDGES, NODES, SOURCES
 
@@ -36,50 +34,50 @@ def _json(value):
 
 class GraphStore:
     def __init__(self, graph_name=None):
-        self._host = os.getenv("RELAY_FALKORDB_HOST", "127.0.0.1")
-        self._port = int(os.getenv("RELAY_FALKORDB_PORT", "6379"))
-        self._graph_name = graph_name or os.getenv("RELAY_FALKORDB_GRAPH", "relay_demo")
-        self._db = None
-        self._graph = None
-        self._connection_lock = Lock()
-
-    def _connect(self):
-        # falkordb-py probes Redis during construction. Defer that probe so the
-        # HTTP application can start and return a useful 503 while the DB is down.
-        if self._graph is None:
-            with self._connection_lock:
-                if self._graph is None:
-                    db = FalkorDB(host=self._host, port=self._port, socket_connect_timeout=3,
-                                  socket_timeout=10)
-                    graph = db.select_graph(self._graph_name)
-                    self._db, self._graph = db, graph
+        self.database = GraphDatabase(graph_name)
 
     @property
     def db(self):
-        self._connect()
-        return self._db
+        return self.database.db
 
     @property
     def graph(self):
-        self._connect()
-        return self._graph
+        return self.database.graph
 
     def _query(self, query, **params):
-        return self.graph.query(query, params=params or None, timeout=5000).result_set
+        return self.database.query(query, params or None)
 
     def health(self):
         return self._query("RETURN 1")[0][0] == 1
 
+    def _ensure_writable(self):
+        if self.database.graph_name not in self.db.list_graphs():
+            return
+        rows = self.database.read("MATCH (w:Workspace {id:'meridian'}) RETURN w.maintenance")
+        if rows and rows[0][0]:
+            raise RuntimeError("Database is in maintenance")
+
     def seed(self):
-        """Upsert only the named fictional facts; never clear user-created records."""
+        """Install fixtures once; preserve existing and edited records."""
+        self._ensure_writable()
+        from .seed import SEED_VERSION
+
+        version = self._query("MATCH (w:Workspace {id:'meridian'}) RETURN w.seed_version")
+        if version and (version[0][0] or 0) >= SEED_VERSION:
+            return
         for source in SOURCES:
-            self._put_source(source)
+            if not self._query("MATCH (s:Source {id:$id}) RETURN s.id", id=source["id"]):
+                self._put_source(source)
         for node in NODES:
-            self._put_entity(node)
+            if not self._query("MATCH (n:Entity {id:$id}) RETURN n.id", id=node["id"]):
+                self._put_entity(node)
         for edge in EDGES:
-            self._put_edge(edge)
+            if not self._query("MATCH (:Entity)-[r]->(:Entity) WHERE r.id=$id RETURN r.id", id=edge["id"]):
+                self._put_edge(edge)
+        self._query("MERGE (w:Workspace {id:'meridian'}) SET w.seed_version=$version", version=SEED_VERSION)
 
     def _put_source(self, source):
+        self._ensure_writable()
         self._query(
             "MERGE (s:Source {id:$id}) SET s.payload=$payload, s.search=$search, "
             "s.updated_at=$updated_at",
@@ -88,6 +86,7 @@ class GraphStore:
         )
 
     def _put_entity(self, node):
+        self._ensure_writable()
         self._query(
             "MERGE (n:Entity {id:$id}) SET n.payload=$payload, n.kind=$kind, n.status=$status, "
             "n.source_ids=$source_ids, n.search=$search",
@@ -101,6 +100,7 @@ class GraphStore:
         )
 
     def _put_edge(self, edge):
+        self._ensure_writable()
         relation = edge["relation"]
         if relation not in RELATIONS:
             raise ValueError("Unsupported relationship type")
@@ -202,6 +202,7 @@ class GraphStore:
         return [list(path) for path in paths], citations
 
     def simulate(self, origin_id, mitigation=False):
+        self._ensure_writable()
         rows = self._query("MATCH (n:Entity {id:$id}) RETURN n.payload", id=origin_id)
         if not rows or (origin := json.loads(rows[0][0]))["kind"] != "service":
             raise ValueError("Ripple origin must be an existing service node")
@@ -268,6 +269,7 @@ class GraphStore:
                 "risk_after": len(affected), "assumptions": assumptions}
 
     def save_investigation(self, investigation):
+        self._ensure_writable()
         self.save_actions(investigation.get("actions", []))
         self._query(
             "MERGE (i:Investigation {id:$id}) SET i.payload=$payload, i.created_at=$created_at",
@@ -301,6 +303,7 @@ class GraphStore:
         return [self._hydrate_memory(json.loads(row[0])) for row in rows]
 
     def save_actions(self, actions):
+        self._ensure_writable()
         for action in actions:
             if action.get("status", "proposed") not in {"proposed", "approved", "done"}:
                 raise ValueError("Unsupported action status")
@@ -343,6 +346,7 @@ class GraphStore:
         return [self._action_from_row(row) for row in rows]
 
     def transition_action(self, action_id, target_status):
+        self._ensure_writable()
         allowed = {"approved": ["proposed", "approved"], "done": ["approved", "done"]}
         if target_status not in allowed:
             raise ValueError("Actions may only transition to approved or done")
@@ -365,6 +369,7 @@ class GraphStore:
         Accepted format: nodes [{id,label,kind,description?}] and edges
         [{source,target,relation}]. Imported relation names never become arbitrary Cypher.
         """
+        self._ensure_writable()
         if not isinstance(data, dict) or not isinstance(source_name, str) or not source_name.strip():
             raise ValueError("A graph object and source name are required")
         raw_nodes, raw_edges = data.get("nodes", []), data.get("edges", [])
