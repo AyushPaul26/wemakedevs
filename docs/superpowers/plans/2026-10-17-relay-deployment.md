@@ -1,5 +1,11 @@
 # Relay test deployment
 
+This is the historical initial deployment plan. The existing free service was
+subsequently deployed and upgraded to member sessions, protected workflows and
+live Groq. Its original Basic Auth decisions and credential blocker below are
+historical; [current deployment instructions](../../deployment.md) and
+[verification results](../../verification.md) describe the active release.
+
 The user wants a real browser testing link and has authorized deployment. Use one free Render Docker web service: the built React frontend and FastAPI share its HTTP port, with the pinned FalkorDB running on container loopback. This is a single-workspace test deployment. Free Render storage is temporary; a replacement container reseeds the sample company and loses added notes, investigations, and tasks.
 
 Deployment decisions: require a password for the UI and API, keep only the real health check public, exclude local credentials and development data from the Docker build, and keep the current local development workflow running. Render generates the preview password. The Groq key must be supplied privately to the hosting environment. No paid service is selected.
@@ -14,4 +20,4 @@ Deployment decisions: require a password for the UI and API, keep only the real 
 
 Review focus: missing password must fail closed; health must fail when the graph is unavailable; unknown API paths must not return frontend HTML; Redis must never bind publicly; local `.env`, data, and model credentials must not enter Git or image layers.
 
-Remaining external prerequisite: Render account authorization. No hosting credential is configured and the running cloud policy blocks `api.render.com`. The user can either create the prepared Blueprint through the linked Render dashboard or supply the saved API credential requirement through secure environment settings. Deployment is not yet verified.
+Historical external prerequisite at the time of this plan: Render account authorization was missing, no hosting credential was configured, and the cloud policy blocked `api.render.com`. That blocker was subsequently resolved through the user's authorized credential, and the existing free service was deployed through Render's API. The current release's exact hosted verification is recorded in the linked verification document.

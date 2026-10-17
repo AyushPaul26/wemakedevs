@@ -1,6 +1,74 @@
 # Verification record
 
-## Free-tier deployment fixes — 18 October 2026
+## Hosted deployment and live workflow — 18 October 2026
+
+The existing free service is live at
+<https://relay-company-brain.onrender.com>. No paid plan or disk was activated,
+and no demo video was published. Runtime commit
+`04070c83242cdb2035276c47ff1959346701a144`, deployment
+`dep-db9t3teq1p3s739get00`, became live at `2026-10-17T19:58:29.650914Z`.
+The full direct HTTPS workflow passed **12/12 checks**, with no retry or fallback
+in that final run.
+
+Direct HTTPS checks verified the public application and assets, protected API
+access, three separate member roles, secure cookies, origin rejection, CSRF
+checks, and an enabled executor. A real workflow uploaded uniquely labelled
+fictional Finance files, completed independent company work while Finance
+remained blocked, rejected requester self-approval, accepted the assigned
+auditor's exact scope, and waited for separate report and case confirmations.
+It produced six execution receipts, USD 220 versus USD 200 totals, two private
+downloads matching their stored hashes, and an internal exception case. The
+company answer and report narrative used live Groq.
+
+The original natural-language run follow-up returned HTTP 200 in live mode,
+cited both actual reports, and saved its answer to memory. The answer correctly
+identified unit prices of USD 110 versus USD 100, the internal case, and that the
+discrepancy alone does not prove a launch blocker. All three sessions signed out
+and lost protected access. The test deliberately paused 65 seconds before the
+final model request because an earlier attempt encountered a confirmed HTTP 429
+provider rate limit. This is paced test evidence, not a guarantee of unlimited
+provider quota or a hidden application fallback.
+
+The first hosted run follow-up failed with a provider HTTP error. Safe server
+diagnostics were added without logging provider bodies, generated text or
+credentials. The model's run context was then reduced from 18,942 to 1,585
+serialized characters by removing repeated graphs, recursive archives and raw
+Finance reference metadata. Exact calculated totals, permitted report IDs,
+current/stale flags and omission counts remain. This measurement covers the run
+section, not the whole request. Subsequent provider-rate-limit failures were
+reported as failures. On commit `226d57d35904d7fe562d3fb9ff09ed4972ae9fff`,
+a structured follow-up returned HTTP 200 in live mode, cited both actual reports,
+and saved memory.
+
+A natural-language follow-up also failed citation validation. The final
+release separates source citations from explicitly declared, authorized report
+citations; it does not grant access to raw Finance files or accept invented
+report IDs. It also records only allowlisted validation subtypes in server logs.
+The final hosted natural-language check passed as described above; earlier
+failures were never presented as successful answers or saved memory.
+
+Regression checks passed in focused groups: 107 compact-context/workflow tests,
+121 citation/model tests, and 51 API/diagnostic tests. These groups overlap;
+their counts are not added together or described as a fresh complete backend
+suite. The earlier complete backend result is recorded separately below.
+
+The browser rerun against the final hosted commit passed **7/7 checks**, with
+21 real upstream requests, zero page errors and zero failed requests, through a
+per-process verified HTTPS forwarding path. Native Chromium's direct hosted
+connection was blocked in this environment. This establishes the tested
+application flow through that forwarding path, not native Chromium TLS
+validation against Render. The direct HTTPS API checks are separate evidence.
+
+The service retains free-tier temporary storage. These checks establish the
+tested workflow behavior, not persistence across container replacement or
+redeployment. Added originals, reports, approval history and memory can be lost
+when the free container is replaced. Verification evidence remains private
+under `.data/sdd/relay-deploy/`; the final 12-check result is
+`live-smoke-a91a17604706/summary.json` with its workflow, timeline and verified
+downloads alongside it. No credentials, private evidence or video files are
+included in Git.
+
+## Local container verification before hosted deployment — 18 October 2026
 
 The complete backend suite passed: **360 passed in 129.55s**, with no retries.
 This includes explicit hosted executor opt-in, offline demo member provisioning,
@@ -19,12 +87,13 @@ origins and missing CSRF tokens were rejected, and cookies retained
 The disposable container was removed. This tests a container restart, not durable
 storage across free-host replacement.
 
-The existing public Render service's health endpoint returned 200 with a connected
-graph in Guided demo mode. Its root still returned the earlier Basic Auth
-challenge (401), confirming the upgraded session UI was not serving at that check.
-No Render deployment or paid activation occurred. The running Codex environment
-still had no `RENDER_API_KEY` binding or process variable; a key visible in an
-editor draft does not establish runtime access. Live Groq was not reverified.
+Before the hosted deployment, the public Render service's health endpoint
+returned 200 with a connected graph in Guided demo mode. Its root returned the
+earlier Basic Auth challenge (401), confirming the upgraded session UI was not
+serving at that earlier check. At that point no Render deployment or paid
+activation had occurred, and the running Codex environment had no Render API
+credential binding or process variable. The later authorized deployments and
+live checks above supersede that status.
 
 Private evidence is in `.data/sdd/relay-deploy/`: `backend-tests.txt`,
 `container-build.txt`, `container-smoke.txt`, and the replayable
@@ -36,10 +105,10 @@ release's detailed browser, migration and replacement-recovery evidence.
 
 Relay Workflows was verified in the cloud checkout on 2026-10-17 with real
 FalkorDB, authenticated members, the background executor and Chromium. The
-existing free Render app remains on the earlier `c40a08f` baseline, verified live
-by the user; this release has not been deployed there.
+free Render app was then still on the earlier `c40a08f` baseline, verified live
+by the user. The hosted deployments above supersede that earlier status.
 
-## Results
+## Earlier workflow release results
 
 | Check | Result |
 | --- | --- |
@@ -54,7 +123,7 @@ by the user; this release has not been deployed there.
 | Candidate container replacement | Passed under 512 MiB, UID/GID 10001:10001; waiting approval, downloads, versions, case history and SQLite survived, with zero repeated effects |
 | Final image build and hosted smoke | **Passed** after the code freeze, with frozen dependencies and TLS verification; local sign-in/static/readiness/session checks passed under 512 MiB |
 | Shell and Compose | Bash syntax and `docker compose config --quiet` passed |
-| Current-release live Groq / hosted update | Not verified: Groq is blocked by the current cloud network policy; no Render deployment or paid activation occurred |
+| Hosted update at that earlier checkpoint | Not verified then: the cloud network policy blocked Groq; no Render deployment or paid activation had occurred at that point |
 
 The backend full run's one failure retained
 `ParseError('Attachment processing timed out.')` in its LangGraph checkpoint
@@ -118,7 +187,7 @@ Private evidence includes:
 ## Limits
 
 - One workspace, one executor and the fixed invoice-review template are supported. Case creation is internal record keeping; it sends no external messages, makes no payments and modifies no external systems.
-- Guided demo and live model results remain distinct. Current tests do not establish live Groq attachment/workflow behavior. Historical live Groq results from the earlier baseline do not verify this release.
-- The free Render baseline has temporary storage. The separate paid persistent Blueprint is review-only; current pricing, disk ownership, verified ingress proxy ranges and real HTTPS same-origin sign-in must be checked before hosted readiness. No wildcard proxy trust is assumed. See [deployment.md](deployment.md).
+- Guided demo and live model results remain distinct. Live company answers, report narration, and the natural-language report follow-up passed on the final hosted code release. The paced run does not establish unrestricted Groq quota, general document extraction, or arbitrary task execution.
+- The free Render service has temporary storage. Direct HTTPS sign-in and session controls have passed; browser forwarding evidence has the limitation described above. The separate paid persistent Blueprint remains review-only; any future paid disk requires its own pricing, ownership and recovery verification. No wildcard proxy trust is assumed. See [deployment.md](deployment.md).
 - Backup snapshots cover the approved data-root checkpoint. External `RELAY_CHECKPOINT_PATH` works for runtime/adoption, but initialization/upgrade refuses incomplete backup coverage. Keep verified backups off disk as well; see [persistence.md](persistence.md).
 - Chromium and automated axe checks do not establish complete cross-browser or screen-reader certification. Optional GraphRAG-SDK ingestion is not a completed semantic integration. Cloud environment publication/restoration in a new task was not verified here.

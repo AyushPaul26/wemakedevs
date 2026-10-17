@@ -5,10 +5,13 @@ branch. It serves the built frontend and API together, with the pinned FalkorDB
 bound only to container loopback. `render.yaml` selects the free plan and
 disables automatic deployments.
 
-The existing free Render app remains on the earlier `c40a08f` baseline, verified
-live by the user. This workflow release has **not** been deployed there. The
-instructions below describe the new release after a deliberate manual
-deployment; they do not change the running service or its existing login flow.
+Relay is deployed on the existing free service at
+<https://relay-company-brain.onrender.com>. The hosted workflow release uses
+separate owner, operator, and Finance auditor sessions, with Groq configured for
+live answers. Runtime commit `04070c83242cdb2035276c47ff1959346701a144`
+passed all 12 direct HTTPS workflow checks, including the natural-language report
+follow-up and saved memory. See [the verification record](verification.md) for
+the deployment identifier, provider-rate-limit pacing, and earlier failures.
 
 1. Open [Deploy Relay on Render](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2FAyushPaul26%2Fwemakedevs), connect the repository if prompted, select branch `work`, and confirm the free service plan. For an existing service, review and deploy the intended commit manually rather than creating a duplicate service.
 2. Wait for the web service to become healthy. Render supplies its actual `https://…onrender.com` app URL; the Blueprint setup link is not the running app.
@@ -108,8 +111,10 @@ secure environment settings for `api.render.com`, plus repository access in
 Render. Existing service identity, target commit, storage and deployment intent
 must be checked before changing that service. Saving a credential requirement or
 configuration draft does not supply the secret, grant access, publish an
-environment or deploy this release. No Render API deployment was performed as
-part of the current local verification.
+environment or deploy this release. The existing service was subsequently
+updated through the authorized Render API on its free plan; no paid service or
+disk was activated. The exact deployed release is recorded in
+[verification.md](verification.md).
 
 ## Container validation
 
@@ -127,15 +132,16 @@ settings, with at least 16 characters. Expose only port 10000 and use HTTPS at
 the hosting boundary. Redis listens only on container loopback. The build context
 excludes local credentials, development data, Git metadata and dependency caches.
 
-The current release passed a real 512 MiB container replacement test against the
+An earlier candidate passed a real 512 MiB container replacement test against the
 same private named volume: a waiting approval, 12 source versions, two
 authenticated downloads, case history and SQLite checkpoints survived, and no
-completed effect repeated. This establishes local Docker behavior; hosted disk
-permissions, current pricing and the deployed release still require separate
-verification. See [the verification record](verification.md) for the exact image
-and current test status.
+completed effect repeated. This establishes local Docker behavior. The active
+free Render service has temporary storage; this test does not establish hosted
+persistence. Any future paid disk's permissions, pricing and replacement recovery
+require separate verification. See [the verification record](verification.md)
+for the exact image and current test status.
 
 The free Blueprint fields were originally checked against Render's
 [official Docker example](https://github.com/render-oss/skills/blob/main/skills/render-deploy/assets/docker.yaml)
 and deployment references. A local build/test does not establish Render quota or
-change the running free baseline.
+change the running service.

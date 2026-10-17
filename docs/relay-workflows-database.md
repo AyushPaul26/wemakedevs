@@ -1,6 +1,6 @@
 # Relay workflows: database design and migration
 
-Status: implemented; schema version 1 applied to the cloud development graph on 2026-10-17 after a verified backup and isolated restore rehearsal. The live Render database was not changed. This document accompanies [the implementation plan](superpowers/plans/2026-10-17-relay-workflows.md) and [feature proposal](relay-workflows-proposal.md).
+Status: implemented; schema version 1 applied to the cloud development graph on 2026-10-17 after a verified backup and isolated restore rehearsal. That development migration did not change the Render database. Later hosted deployments are recorded in [verification.md](verification.md); the free service uses temporary storage, and those deployments do not establish migration or preservation of its previous records. This document accompanies [the implementation plan](superpowers/plans/2026-10-17-relay-workflows.md) and [feature proposal](relay-workflows-proposal.md).
 
 ## Verified starting point
 

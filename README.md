@@ -32,6 +32,8 @@ Existing databases require an explicit backup and migration while application wr
 
 ## Public test deployment
 
+Open [Relay](https://relay-company-brain.onrender.com) and sign in with your privately configured owner, operator, or Finance auditor account. It runs on Render's free plan with temporary storage: the service can sleep, and replacement or redeployment can discard added files and records. See [the verification record](docs/verification.md) for the tested release and current deployment status.
+
 [Create a Render test deployment](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2FAyushPaul26%2Fwemakedevs) from branch `work`. The Blueprint selects one free Docker service, generates separate owner/operator/auditor passwords, and explicitly enables the workflow executor after offline setup. Finance approval is still required. For the existing service, update its settings and manually deploy the reviewed commit instead of creating a duplicate. See [deployment instructions](docs/deployment.md) for the exact HTTPS origin, login, Groq configuration, and temporary-storage limits.
 
 ## Optional Groq model
