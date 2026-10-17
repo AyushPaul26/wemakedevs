@@ -9,7 +9,9 @@ Deployment decisions: require a password for the UI and API, keep only the real 
 - [x] Add and verify a deployment-only authentication/static-serving boundary.
 - [x] Build the Docker image with frozen dependencies and test its real graph, frontend, auth, and Ripple under a 512 MiB limit.
 - [x] Add a free Render Blueprint and concise deployment instructions.
-- [ ] Check source for secrets, commit the deployment-ready app to the existing branch, and push using the existing GitHub authentication.
+- [x] Check source for secrets, commit the deployment-ready app to the existing branch, and push using the existing GitHub authentication.
 - [ ] Create the public service and verify its HTTPS URL when hosting access is supplied. If access remains absent, provide the concrete deployment link and exact remaining account action; do not claim it is an app URL.
 
 Review focus: missing password must fail closed; health must fail when the graph is unavailable; unknown API paths must not return frontend HTML; Redis must never bind publicly; local `.env`, data, and model credentials must not enter Git or image layers.
+
+Remaining external prerequisite: Render account authorization. No hosting credential is configured and the running cloud policy blocks `api.render.com`. The user can either create the prepared Blueprint through the linked Render dashboard or supply the saved API credential requirement through secure environment settings. Deployment is not yet verified.
