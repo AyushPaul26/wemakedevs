@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: relay-company-brain
+    runtime: docker
+    plan: free
+    branch: work
+    autoDeployTrigger: off
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: RELAY_ACCESS_PASSWORD
+        generateValue: true
+      - key: RELAY_MODEL_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: RELAY_MODEL
+        value: openai/gpt-oss-20b

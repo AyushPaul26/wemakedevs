@@ -1,0 +1,23 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["frontend/src"],
+  "locale": "en-US",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast", "CRUD"],
+  "ownership": {
+    "Select/Listbox": "native",
+    "Date": "typed"
+  },
+  "requiredCommands": ["typecheck", "unit", "build", "design", "browser"],
+  "commands": {
+    "typecheck": "npm --prefix frontend run typecheck",
+    "unit": "npm --prefix frontend test",
+    "build": "npm --prefix frontend run build",
+    "design": "npm exec --yes --package=@google/design.md -- designmd lint DESIGN.md",
+    "browser": "node scripts/browser-check.mjs"
+  },
+  "evidence": {
+    "crudFullFlow": "scripts/browser-check.mjs",
+    "failurePaths": "docs/verification.md"
+  }
+}

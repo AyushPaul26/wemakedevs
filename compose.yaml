@@ -1,0 +1,24 @@
+name: relay
+
+services:
+  falkordb:
+    # Official v4.22.1 release, pinned to the verified registry manifest digest.
+    image: falkordb/falkordb:v4.22.1@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${RELAY_FALKORDB_PORT:-6379}:6379"
+    environment:
+      BROWSER: "0"
+      REDIS_ARGS: "--appendonly yes --appendfsync everysec"
+    volumes:
+      - falkordb-data:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    stop_grace_period: 30s
+
+volumes:
+  falkordb-data:
