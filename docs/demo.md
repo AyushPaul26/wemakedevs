@@ -1,10 +1,12 @@
 # Relay demo walkthrough
 
+For the authenticated, two-member invoice workflow, attachments, exact approvals, execution receipts, reports, cases, follow-up memory, and source revision demo, use [the workflow user guide](workflow-demo.md).
+
 Relay connects a company's people, services, decisions, and past incidents. **Ripple** shows which work is exposed to a hypothetical service outage, then compares a documented recovery assumption. Use fictional Meridian data throughout the demo.
 
 ## Two-minute story
 
-1. Start Relay using the README. Point out the **Sample workspace** and **Guided demo** labels. With no model credential, answers are deterministic compositions of stored evidence; the database, workflow, and memory are real.
+1. Start Relay using the README and sign in with an assigned development account. Point out the fictional Meridian workspace and **Guided demo** label. With no model credential, answers are deterministic compositions of stored evidence; the database, workflow, and memory are real.
 2. Open the launch map. Select **Payment gateway** and inspect its owner and source evidence.
 3. Run Ripple for the payment gateway. Show three exposed dependencies: Checkout, Atlas launch, and Billing reconciliation. Follow the payment → checkout → launch path. These are dependency counts, not predictions of outage probability.
 4. Enable the backup-provider assumption. Exposure drops from three to one: billing still depends on the primary provider's settlement export. Open the cited runbook and previous incident. The simulation has not changed authoritative company facts.
@@ -33,10 +35,10 @@ The supplied rules allow submitting to all three. Describe each demonstrated beh
 
 ## Record the walkthrough
 
-With the development servers running, system Chromium and ffmpeg installed:
+With the development servers running, system Chromium and ffmpeg installed, and credentials provided privately as described in the [workflow guide](workflow-demo.md):
 
 ```sh
-node scripts/record-demo.mjs
+RELAY_RECORD_LEGACY=1 node scripts/record-demo.mjs
 ```
 
 This captures real app interactions into a silent `.data/relay-demo.mp4`: company map, outage exposure, backup comparison, original evidence, investigation handoffs, task approval, and persistent memory. It uses the current provider mode; keep Guided demo visibly identified when no live model is configured. Add narration using the story above for a final submission.
@@ -45,4 +47,4 @@ This captures real app interactions into a silent `.data/relay-demo.mp4`: compan
 
 The application and its central FalkorDB behavior are new work. Open-source libraries provide the database, workflow engine, graph renderer, and assistant UI. Graphify exports can be imported using the adapter documented in `graphify.md`. GraphRAG-SDK is an optional dependency for future extraction, not a completed ingestion integration.
 
-This is a single sample-workspace development application. It has no production authentication, public deployment, live business connectors, or automatic external actions. A submission should include a recorded walkthrough of the working app, these setup instructions, and the exact verified revision.
+This is a single sample-workspace development application with assigned accounts and session authentication. It has no live business connectors, payments, or automatic external messages. Invoice workflows use internal tools under exact approval scopes. A submission should include a recorded walkthrough of the working app, these setup instructions, and the exact verified revision.

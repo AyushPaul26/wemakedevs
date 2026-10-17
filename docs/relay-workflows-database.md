@@ -1,12 +1,12 @@
 # Relay workflows: database design and migration
 
-Status: planned, not applied. This document accompanies [the implementation plan](superpowers/plans/2026-10-17-relay-workflows.md) and [feature proposal](relay-workflows-proposal.md).
+Status: implemented; schema version 1 applied to the cloud development graph on 2026-10-17 after a verified backup and isolated restore rehearsal. The live Render database was not changed. This document accompanies [the implementation plan](superpowers/plans/2026-10-17-relay-workflows.md) and [feature proposal](relay-workflows-proposal.md).
 
 ## Verified starting point
 
 On 2026-10-17, read-only `GRAPH.RO_QUERY` calls against the **cloud development** graph `relay_demo` found 24 `Entity`, 12 `Source`, 9 `Investigation`, 10 `Action`, and 3 `Scenario` nodes. Tasks were 6 proposed, 2 approved, and 2 done. These are development counts, not a measurement of the Render deployment, and must not be hardcoded as migration expectations.
 
-Current records use JSON `payload` for API display fields. `Action.status` and `approved_at` are authoritative scalar fields overlaid on that payload. Company edges connect `Entity` nodes. `Source.payload.excerpt` and `Source.search` currently contain source text. `seed()` rewrites its named fictional records at startup. There is no migration/version system in the current code.
+Before the upgrade, records used JSON `payload` for API display fields. `Action.status` and `approved_at` were authoritative scalar fields overlaid on that payload. Company edges connected `Entity` nodes. `Source.payload.excerpt` and `Source.search` contained source text. Startup called `seed()` without schema/version tracking. The upgrade preserves these legacy records and replaces startup seeding with explicit offline preparation.
 
 Preserve all existing IDs, company dependency directions, investigation text, action states, and source links. Existing completed tasks remain **manual tasks**; no execution receipt or named reviewer may be invented for them. Old citations did not record a source version and remain labeled **Version not recorded**.
 
@@ -126,4 +126,8 @@ Replace unconditional seeding with a versioned seed manifest: unchanged sample d
 
 The existing Render free service has no persistent disk. Prepare a separate persistent-disk Blueprint/configuration without silently changing the active free service or activating paid resources. A replacement-container test using the same mounted data must preserve a waiting approval and completed download. A restore test must verify graph, file hashes, and checkpoint consistency. Snapshot recovery revokes restored sessions and expired grants before traffic resumes.
 
-**Nothing in this document has been applied to the current database.**
+## Development migration result
+
+The upgrade preserved all 24 company entities, 12 sources, 9 investigations, 10 manual actions, and 3 scenarios present immediately before migration. Exact legacy IDs, payloads, statuses, company edges, and citation links matched before and after. The existing SQLite checkpoint file was unchanged and passed its integrity check. Twelve legacy source snapshots were added; no execution receipt was invented for historical tasks. Repeating the migration was a no-op.
+
+The graph/file backup and restore verification evidence remain private under `.data/backups/`; the migration report is `.data/sdd/relay-workflows/development-migration.json`. Storage adoption passed readiness checks. Execution was left disabled until explicit opt-in for the separately provisioned demo accounts and browser verification. Later labeled demo records are verification data, not part of the original migration counts. The paid Render configuration remains unactivated.

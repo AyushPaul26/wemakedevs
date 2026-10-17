@@ -1,56 +1,90 @@
 # Verification record
 
-Environment: Codex cloud, Python 3.12.14, Node 24.19.0, Docker 28.4.0, Compose 2.40.3, system Chromium. This record describes the running instance, not an independently restored task or public deployment.
+Relay Workflows was verified in the cloud checkout on 2026-10-17 with real
+FalkorDB, authenticated members, the background executor and Chromium. The
+existing free Render app remains on the earlier `c40a08f` baseline, verified live
+by the user; this release has not been deployed there.
 
-## Executed checks
+## Results
 
-| Command or workflow | Result |
+| Check | Result |
 | --- | --- |
-| `./scripts/start-db.sh` | Real FalkorDB PING and Cypher write/read passed; unique temporary graph deleted |
-| Database restart | A temporary fact survived a container restart; the test graph was then deleted |
-| `./scripts/dev.sh` startup, shutdown, restart | API and Vite proxy health passed; supervisor stopped both child servers and released their ports |
-| `./scripts/check.sh` | 54 backend tests, the initial 7 frontend tests, TypeScript, and production build passed |
-| Final frontend checks | 16 tests across 4 files, TypeScript, and production build passed; includes stale action responses and evidence-correct recovery highlights |
-| Frozen cloud install script | `uv sync --frozen`, `npm ci`, database readiness, and production build passed; app restart then passed API/proxy health |
-| `.venv/bin/ruff check backend` | Passed |
-| `UV_CACHE_DIR=/workspace/.cache/uv uv sync --frozen` | Passed |
-| Real Graphify HTTPX export import and repeat import | 144 nodes / 330 edges stored in a disposable FalkorDB graph, provenance retained, no duplicates |
-| `node scripts/record-demo.mjs` | Captured a 32-second silent video of real Guided demo interactions; ffprobe confirmed a valid MP4 |
+| Backend tests | Latest full run: **302 passed, 1 parser-timeout failure** in 431.85s; unchanged isolated rerun: **1 passed** in 8.45s. All 303 tests have passing evidence across those runs |
+| Backend Ruff | Passed |
+| Frontend tests | **31 passed across 6 files** in 25.95s |
+| TypeScript and production build | Passed; Vite bundle-size advisory only |
+| Actual workflow browser and recording | **11/11 passed**, no browser errors; completed desktop and 390px mobile axe reported zero violations, no overflow, logout passed |
+| Actual legacy browser | **10/10 passed** without mocked routes; desktop/mobile-dialog axe reported zero violations |
+| Mocked UI checks and audits | 6 browser checks passed; 3 axe scans reported zero violations; strict UI audit and design lint passed. Later focused completed/mobile regressions also passed |
+| Development migration | Schema 1, verified backup/restore, legacy data and checkpoint preserved, repeat apply a no-op; execution explicitly enabled after verification |
+| Candidate container replacement | Passed under 512 MiB, UID/GID 10001:10001; waiting approval, downloads, versions, case history and SQLite survived, with zero repeated effects |
+| Final image build and hosted smoke | **Passed** after the code freeze, with frozen dependencies and TLS verification; local sign-in/static/readiness/session checks passed under 512 MiB |
+| Shell and Compose | Bash syntax and `docker compose config --quiet` passed |
+| Current-release live Groq / hosted update | Not verified: Groq is blocked by the current cloud network policy; no Render deployment or paid activation occurred |
 
-Backend coverage includes directed impact paths, alternate dependency routes, backups exposed to the same outage, idempotent approval, completion ordering, persisted sources/memory, unavailable-database recovery, durable LangGraph checkpoints, and model failures. Provider unit tests use HTTP mocks. A real Groq investigation was subsequently verified with openai/gpt-oss-20b: HTTP 200, live mode, two valid citations, three agent steps, and persistence in FalkorDB memory.
+The backend full run's one failure retained
+`ParseError('Attachment processing timed out.')` in its LangGraph checkpoint
+while Docker was building concurrently. With Docker stopped, the unchanged HTTP
+test passed in 8.45s. The deliberate 30-second parser limit and assertions were
+not relaxed. This is passing evidence for all 303 cases across runs, not a claim
+of one pristine 303-test run.
 
-## Browser checks
+## Workflow, migration and recovery
 
-The project-owned runner is `node scripts/browser-check.mjs`. It uses the installed frontend Playwright dependencies and `/usr/bin/chromium` (override with `RELAY_BROWSER_EXECUTABLE`). Start the application first. It adds sample investigations, internal actions, and source notes to the current sample workspace.
+The actual browser flow uploaded protected Finance files, completed company work
+while Finance waited, obtained distinct auditor and exact report/case approvals,
+and automatically completed all six steps. Two downloads and an internal case
+were verified, followed by cited output Q&A and saved memory. Replacing the
+invoice created a new plan and fresh approval, reused company work, produced a
+zero discrepancy and resolved the same case. These runs used Guided demo mode.
 
-All **12 browser workflows passed**, with no uncaught browser exceptions: graph rendering, 3→1 backup exposure, rejection of stale scenario responses, keyboard node evidence, dialog focus restoration, cited investigations and three handoffs, approval/completion, memory after reload, note validation/draft persistence/storage/search, visible investigation failure followed by successful retry, desktop accessibility/layout, mobile dialog/reduced motion, and bootstrap recovery.
+The authorized development migration preserved the original 24 entities,
+12 sources, 9 investigations, 10 manual actions and 3 scenarios, including their
+legacy data/status comparison. The checkpoint was unchanged, isolated restore
+passed, repeated apply was a no-op and migration fabricated no execution
+receipts. Execution was subsequently enabled explicitly for the verified demo.
+The private record is `.data/sdd/relay-workflows/development-migration.json`.
 
-Desktop and mobile-dialog axe checks reported **zero violations** for WCAG 2 A/AA and 2.1 AA tags. One impact-label contrast issue found in the first run was corrected with a dedicated text color and verified in the final run. Final results are recorded in `.data/screenshots/browser-results.json`. Generated screenshots and axe reports remain local under `.data/screenshots/`.
+Full replacement recovery was tested on the earlier candidate image
+`sha256:9edcb4f13b7b401ca2e2ea20f0541c73f89f3dee49d656fbfc11a64c88e09fac`,
+which predates the final lease-renewal, Ripple privacy and UI fixes. A new
+container against the same unique volume, with initialization disabled,
+preserved the waiting gate, 12 source versions, two authenticated download
+hashes, one case revision and SQLite integrity. Seven receipts remained
+unchanged; completed effects repeated zero times. Disposable resources were
+removed. The final image receives a separate short hosted-session/static smoke;
+the earlier full replacement result is not relabeled as a final-image rerun.
 
-A final focused browser check verified the rendered recovery highlight after its guard was tightened: Payment gateway's supported Backup provider is green, while Identity service has no unsupported recovery highlight. Six unit regressions also cover unhealthy backups, backups exposed to the same outage, consumers that remain exposed, incorrect edge directions, and unchanged exposure counts.
+Final image:
+`sha256:e820014e34f24628b5dc852419e857cdaa9ee0382d0007535f4fb2a6a60d75dd`.
+Its separate 512 MiB smoke verified health, public sign-in HTML and compiled
+JavaScript (200), anonymous bootstrap (401), same-origin owner login (200),
+cross-origin login rejection (403), `Secure; HttpOnly; SameSite=Lax` cookies, and
+authenticated session/bootstrap (200). Execution remained disabled on this fresh
+workspace. It ran as UID 10001 with a unique disposable graph/volume and no
+published host ports; the container and volume were removed. This is local
+container evidence, not validation of Render's TLS ingress.
 
-The premium UI static audit also passed in strict mode with zero findings. The maintained UI contract documents native scenario selection, modal focus ownership, source-note drafts, and action state transitions. Full deletion is intentionally outside the product scope; note creation/read and task approval/completion are the implemented lifecycle operations.
+## Recording and evidence
 
-`DESIGN.md` lint reported zero errors and warnings. Groq defaults, the secure key requirement, the tested installation script, and startup instructions were saved in the cloud environment draft. Saving is confirmed; publication and restoration in a new task have not been tested.
+The fresh recording is `.data/relay-demo.mp4`: H.264, 1440×1080, 44.000s,
+1,391,647 bytes. `ffprobe` verified it and a complete ffmpeg decode exited 0.
+It records the actual workflow; no API routes were mocked or feature assertions
+removed to obtain the passing result.
+
+Private evidence includes:
+
+- `.data/workflow-browser-live/report.json`: 11 checks and 11 scenes, with screenshots, desktop/mobile axe reports and verified downloads alongside it.
+- `.data/screenshots/browser-results.json`: 10 actual legacy checks and its desktop/mobile-dialog axe reports.
+- `.data/sdd/relay-workflows/task-10-browser-report.md`, `record-demo-output.txt` and `legacy-browser-output.txt`.
+- `.data/sdd/relay-workflows/task-10-persistence-report.md`, `task-10-container-recovery.txt` and its replayable harness.
+- `.data/sdd/relay-workflows/final-http-rerun.txt` and `final-frontend-tests.txt` for the final focused retry and frontend run; `frontend/premium-audit.json` and `frontend/browser-results/` for UI audit/regression evidence.
+- `.data/sdd/relay-workflows/task-10-final-container-smoke.txt` and its replayable harness for the final image smoke.
 
 ## Limits
 
-- Live Groq access is configured for this cloud checkout using a private, Git-ignored local environment file authorized by the user. The secret value is not stored in source or in the configuration draft. Proxy-secret binding and environment publication are separate from the verified current application. Groq account quota still applies; ChatGPT Pro does not supply API credits.
-- The browser runs Chromium only. Automated accessibility checks and keyboard flows do not establish complete screen-reader or cross-browser certification.
-- GraphRAG-SDK is an optional dependency, not a completed or verified semantic ingestion integration.
-- The production frontend builds, with a bundle-size advisory from Vite. A separate password-protected test deployment entry point is included; multi-tenant production authorization is not implemented.
-- No public deployment or environment publication has been verified. The Render setup link is not a live app URL.
-
-## Live Groq connection
-
-Authenticated model discovery confirmed that the previous llama-3.3-70b-versatile model was unavailable on this account. The default was updated to the available openai/gpt-oss-20b model. A real end-to-end investigation through the frontend proxy returned Devon Park as the payment owner, validated both citations, completed all three agent steps, and saved the live result in memory. The 15 focused agent tests and Ruff also passed after the default change.
-
-## Public test deployment preparation
-
-The separate `relay.hosting` entry point adds browser Basic authentication and serves the built frontend. All 64 backend tests passed, including 10 deployment-boundary tests covering unauthorized requests, malformed credentials, static traversal, actual graph health failures, and response headers. The deployment files received an independent code review.
-
-The Docker image built with the frozen Python/npm dependencies and normal TLS verification. Its first run found unreadable copied source files under the non-root runtime user; explicit read/traverse permissions fixed this and the rebuilt image passed. A real container limited to 512 MiB served health, blocked anonymous app requests, rendered the graph in authenticated Chromium without page errors, returned Ripple exposure 3→1, and persisted a cited investigation in its embedded FalkorDB. Observed memory was approximately 89 MiB; this is a small sample workload, not a load test. Missing access-password configuration stopped the container before starting services. The image contains neither the local `.env` nor Git metadata or frontend dependency caches.
-
-The hosted-container tests used Guided demo mode. Live Groq was separately verified in the development application; no Groq key was copied into the image. Render account/API access is still required to create and verify a public service URL. The Blueprint selects the free plan and temporary storage, and its fields were checked against Render-maintained documentation sources. Render's API was blocked by the current proxy policy and no hosting credential was configured; a `RENDER_API_KEY` requirement and `api.render.com` destination were saved in the cloud draft for review.
-
-Stopping the embedded database caused the supervisor to stop the whole container with exit code 1. Restarting the same container recovered the saved investigation. The deployment-ready source was committed and pushed to `AyushPaul26/wemakedevs`, branch `work`; private credentials and test outputs were excluded.
+- One workspace, one executor and the fixed invoice-review template are supported. Case creation is internal record keeping; it sends no external messages, makes no payments and modifies no external systems.
+- Guided demo and live model results remain distinct. Current tests do not establish live Groq attachment/workflow behavior. Historical live Groq results from the earlier baseline do not verify this release.
+- The free Render baseline has temporary storage. The separate paid persistent Blueprint is review-only; current pricing, disk ownership, verified ingress proxy ranges and real HTTPS same-origin sign-in must be checked before hosted readiness. No wildcard proxy trust is assumed. See [deployment.md](deployment.md).
+- Backup snapshots cover the approved data-root checkpoint. External `RELAY_CHECKPOINT_PATH` works for runtime/adoption, but initialization/upgrade refuses incomplete backup coverage. Keep verified backups off disk as well; see [persistence.md](persistence.md).
+- Chromium and automated axe checks do not establish complete cross-browser or screen-reader certification. Optional GraphRAG-SDK ingestion is not a completed semantic integration. Cloud environment publication/restoration in a new task was not verified here.

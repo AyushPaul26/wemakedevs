@@ -1,5 +1,11 @@
 # Relay product specification
 
+This is the original company-map baseline specification. The later approved
+[workflow proposal](relay-workflows-proposal.md), [database design](relay-workflows-database.md),
+and [current walkthrough](workflow-demo.md) extend it with member sessions,
+private attachments, approvals, real execution, and versioned outputs. The API
+shapes and implementation-turn authorization below describe that earlier baseline.
+
 The user approved starting implementation after reviewing Relay, Ripple, the repository shortlist, and the Graph Hacks requirements. Build a working end-to-end hackathon application in the existing isolated cloud checkout.
 
 ## Product
