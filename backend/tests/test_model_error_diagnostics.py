@@ -122,3 +122,50 @@ def test_invalid_provider_status_is_omitted_without_formatting(caplog, status):
     assert len(records) == 1
     assert records[0].getMessage() == "Model investigation failed category=provider reason=provider_http_error"
     assert records[0].exc_info is None and "PRIVATE_" not in caplog.text
+
+
+@pytest.mark.parametrize("validation_reason", [
+    "answer_empty", "source_outside_context", "node_outside_context", "inline_not_declared",
+])
+def test_allowlisted_validation_subtype_is_logged_without_ids(caplog, validation_reason):
+    error = ModelResponseError("The model cited evidence outside the retrieved graph. Please retry.")
+    error.validation_reason = validation_reason
+    with caplog.at_level(logging.WARNING, logger="relay.api"):
+        response = request_failure(error, RuntimeError("PRIVATE_CITATION_ID"))
+    assert response.status_code == 502
+    assert response.json() == {"detail": GENERIC_DETAIL}
+    records = [record for record in caplog.records if record.name == "relay.api"]
+    assert len(records) == 1
+    assert records[0].getMessage() == (
+        "Model investigation failed category=response_validation reason=citation_scope "
+        f"validation_reason={validation_reason}"
+    )
+    assert records[0].exc_info is None and "PRIVATE_" not in caplog.text
+
+
+@pytest.mark.parametrize("validation_reason", [None, True, 413, "PRIVATE_CITATION_ID", "inline_not_declared PRIVATE_API_KEY", {}, PrivateStatus()],
+                         ids=["none", "bool", "int", "private", "suffixed", "dict", "object"])
+def test_untrusted_validation_subtype_is_never_logged_or_formatted(caplog, validation_reason):
+    error = ModelResponseError("The model cited evidence outside the retrieved graph. Please retry.")
+    error.validation_reason = validation_reason
+    with caplog.at_level(logging.WARNING, logger="relay.api"):
+        response = request_failure(error)
+    assert response.status_code == 502
+    assert response.json() == {"detail": GENERIC_DETAIL}
+    records = [record for record in caplog.records if record.name == "relay.api"]
+    assert len(records) == 1
+    assert records[0].getMessage() == "Model investigation failed category=response_validation reason=citation_scope"
+    assert records[0].exc_info is None and "PRIVATE_" not in caplog.text
+
+
+def test_provider_exception_does_not_claim_response_validation_subtype(caplog):
+    error = ModelError("The model provider is unavailable. Please retry or check the model configuration.")
+    error.provider_status = 413
+    error.validation_reason = "inline_not_declared"
+    with caplog.at_level(logging.WARNING, logger="relay.api"):
+        response = request_failure(error)
+    assert response.status_code == 502
+    assert response.json() == {"detail": GENERIC_DETAIL}
+    records = [record for record in caplog.records if record.name == "relay.api"]
+    assert len(records) == 1
+    assert records[0].getMessage() == "Model investigation failed category=provider reason=provider_http_error provider_status=413"

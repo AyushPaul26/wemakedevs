@@ -56,6 +56,9 @@ _MODEL_ERROR_REASONS = {
     "The model returned an invalid reconciliation narrative": "report_narrative",
     "The model provider is unavailable; retry is available": "provider_unavailable",
 }
+_MODEL_VALIDATION_REASONS = frozenset({
+    "answer_empty", "source_outside_context", "node_outside_context", "inline_not_declared",
+})
 
 
 def create_app(store=None, checkpoint_path: str | Path | None = None, *, secure_cookie=False,
@@ -157,12 +160,18 @@ def create_app(store=None, checkpoint_path: str | Path | None = None, *, secure_
         category = "response_validation" if isinstance(exc, ModelResponseError) else "provider"
         message = exc.args[0] if len(exc.args) == 1 and type(exc.args[0]) is str else None
         reason = _MODEL_ERROR_REASONS.get(message, "unknown")
+        diagnostic = "Model investigation failed category=%s reason=%s"
+        values = [category, reason]
         provider_status = getattr(exc, "provider_status", None)
         if type(provider_status) is int and 400 <= provider_status <= 599:
-            logger.warning("Model investigation failed category=%s reason=%s provider_status=%d",
-                           category, reason, provider_status)
-        else:
-            logger.warning("Model investigation failed category=%s reason=%s", category, reason)
+            diagnostic += " provider_status=%d"
+            values.append(provider_status)
+        validation_reason = getattr(exc, "validation_reason", None)
+        if (isinstance(exc, ModelResponseError) and type(validation_reason) is str
+                and validation_reason in _MODEL_VALIDATION_REASONS):
+            diagnostic += " validation_reason=%s"
+            values.append(validation_reason)
+        logger.warning(diagnostic, *values)
         return JSONResponse(status_code=502, content={"detail": "The model could not complete this investigation. "
             "Check provider settings and quota, then retry. Your previous memory is unchanged."})
 

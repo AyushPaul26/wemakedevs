@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from relay.agents import InvestigationService, _demo_plan
-from relay.llm import ModelConfig, ModelError, ModelResponseError, OpenAICompatibleClient
+from relay.llm import ModelConfig, ModelError, ModelResponseError, OpenAICompatibleClient, validate_plan
 from test_agents import EvidenceStore
 
 
@@ -164,6 +164,9 @@ async def test_non_run_model_context_keeps_existing_evidence_contract(kind):
     answer(answer="Raw evidence [private-finance-source].", source_ids=[RAW_REF["source_id"]]),
     answer(evidence_refs=[RAW_REF]),
     answer(output_ids=["invented-report"]),
+    answer(answer="Report [report-html].", source_ids=["report-html"]),
+    answer(answer="Report [report-html].", output_ids=[]),
+    answer(answer="Raw evidence [private-finance-source].", output_ids=[RAW_REF["source_id"]]),
 ])
 @pytest.mark.asyncio
 async def test_live_followup_invalid_citations_still_fail_without_saving_memory(tmp_path, payload):
@@ -196,3 +199,47 @@ def test_model_error_preserves_runtime_error_args_and_ignores_unsafe_status_valu
     assert ModelError("first", "second").args == ("first", "second")
     for invalid in (True, "413", {"body": "private"}, 200, 600, None):
         assert ModelError("safe", provider_status=invalid).provider_status is None
+
+
+@pytest.mark.parametrize("text,source_ids,output_ids", [
+    ("Recorded difference [report-html].", [], ["report-html"]),
+    ("Company policy [general] and recorded difference [report-html].", ["general"], ["report-html"]),
+    ("Company policy [general].", ["general"], []),
+])
+@pytest.mark.asyncio
+async def test_live_inline_citations_accept_separately_declared_authorized_sources_and_reports(
+        text, source_ids, output_ids):
+    context = run_context()
+    context["sources"] = [{"id": "general", "excerpt": "Company policy."}]
+    _, result = await capture(context, answer(answer=text, source_ids=source_ids, output_ids=output_ids))
+    assert result["answer"] == text
+    assert result["source_ids"] == source_ids and result["output_ids"] == output_ids
+
+
+@pytest.mark.parametrize("payload,reason", [
+    (answer(answer="  \n "), "answer_empty"),
+    (answer(source_ids=[RAW_REF["source_id"]]), "source_outside_context"),
+    (answer(source_ids=["report-html"]), "source_outside_context"),
+    (answer(node_ids=["case-real"]), "node_outside_context"),
+    (answer(answer="Report [report-html].", output_ids=[]), "inline_not_declared"),
+    (answer(answer="Unknown [invented]."), "inline_not_declared"),
+])
+def test_citation_scope_failures_have_safe_specific_reasons(payload, reason):
+    with pytest.raises(ModelResponseError) as raised:
+        validate_plan(payload, run_context())
+    assert str(raised.value) == "The model cited evidence outside the retrieved graph. Please retry."
+    assert raised.value.validation_reason == reason
+
+
+@pytest.mark.parametrize("identifier", ["invented-report", RAW_REF["source_id"], "general"])
+def test_declaring_inline_id_as_output_does_not_bypass_actual_report_scope(identifier):
+    context = run_context()
+    context["sources"] = [{"id": "general", "excerpt": "A real source is not a report."}]
+    with pytest.raises(ModelResponseError, match="unavailable report"):
+        validate_plan(answer(answer=f"Recorded evidence [{identifier}].", output_ids=[identifier]), context)
+
+
+def test_validation_reason_rejects_arbitrary_content_and_preserves_exception_args():
+    assert ModelResponseError("first", "second").args == ("first", "second")
+    for invalid in (True, "PRIVATE_PROVIDER_BODY", {"body": "private"}, 400, None):
+        assert ModelResponseError("safe", validation_reason=invalid).validation_reason is None
