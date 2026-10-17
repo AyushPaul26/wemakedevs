@@ -10,6 +10,7 @@ import sys
 from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'backend'))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from relay.database import GraphDatabase  # noqa: E402
 from relay.graph_store import GraphStore  # noqa: E402
@@ -172,6 +173,42 @@ def resume_backup(database, root, manifest_path, *, quiesced=False):
         raise
 
 
+def hosted_startup(database, root, environ=None, *, quiesced=False):
+    """Prepare an explicit hosted boot while HTTP and executor writers are off."""
+    if not quiesced:
+        raise RuntimeError('Hosted startup requires quiesced HTTP and executor writers')
+    environment = os.environ if environ is None else environ
+    flags = {}
+    for name in ('RELAY_INITIALIZE_DATA', 'RELAY_UPGRADE_DATA',
+                 'RELAY_ENABLE_EXECUTION', 'RELAY_PROVISION_DEMO_ACCOUNTS'):
+        value = environment.get(name, '0')
+        if value not in ('0', '1'):
+            raise RuntimeError(f'{name} flag must be exactly 0 or 1')
+        flags[name] = value == '1'
+    mode = environment.get('RELAY_STORAGE_MODE', 'ephemeral')
+    if mode not in ('ephemeral', 'persistent'):
+        raise RuntimeError('Hosted storage mode must be ephemeral or persistent')
+    if flags['RELAY_INITIALIZE_DATA'] and flags['RELAY_UPGRADE_DATA']:
+        raise RuntimeError('Initialize and upgrade flags cannot be enabled together')
+
+    if flags['RELAY_UPGRADE_DATA']:
+        prepare_storage(database, root, upgrade=True, quiesced=True)
+    elif flags['RELAY_INITIALIZE_DATA'] or mode == 'ephemeral':
+        prepare_storage(database, root, initialize=True, quiesced=True)
+    else:
+        check_storage(database, root)
+
+    if flags['RELAY_PROVISION_DEMO_ACCOUNTS']:
+        from provision_hosted import provision
+        provision(database, environment, quiesced=True)
+        check_storage(database, root)
+    if flags['RELAY_ENABLE_EXECUTION']:
+        # Preparation/provisioning failures above never reach this mutation.
+        # Zero/missing opt-in preserves an existing authoritative value.
+        database.query("MATCH (w:Workspace {id:'meridian'}) SET w.execution_enabled=true")
+    check_storage(database, root)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--graph')
@@ -179,6 +216,8 @@ def main():
     parser.add_argument('--quiesced', action='store_true')
     operation = parser.add_mutually_exclusive_group()
     operation.add_argument('--check', action='store_true', help='Read-only default')
+    operation.add_argument('--hosted', action='store_true',
+                           help='Validate explicit hosted flags and prepare before HTTP starts')
     operation.add_argument('--initialize', action='store_true', help='Seed a new empty graph once, then verified migration')
     operation.add_argument('--upgrade', action='store_true', help='Back up, restore-rehearse and migrate offline')
     operation.add_argument('--adopt-storage', action='store_true', help='Register verified existing current-schema storage')
@@ -189,7 +228,11 @@ def main():
     args = parser.parse_args()
     try:
         database = GraphDatabase(args.graph)
-        if args.resume_backup:
+        if args.hosted:
+            if args.enable_execution or args.backup_manifest:
+                parser.error('--hosted uses explicit environment flags; do not combine CLI preparation options')
+            hosted_startup(database, args.data_dir, quiesced=args.quiesced)
+        elif args.resume_backup:
             if args.enable_execution or args.backup_manifest:
                 parser.error('Backup resume leaves execution disabled; do not combine preparation options')
             resume_backup(database, args.data_dir, args.resume_backup, quiesced=args.quiesced)

@@ -1,6 +1,9 @@
 """One session boundary used by development and hosted FastAPI applications."""
 
 import secrets
+import ipaddress
+import re
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,6 +12,38 @@ from .auth import AuthError, SESSION_SECONDS, SessionView
 
 
 COOKIE_NAME = "relay_session"
+
+
+def validate_public_origin(value: str | None) -> str | None:
+    """Accept a single canonical HTTPS origin, never a path or proxy header."""
+    if value is None:
+        return None
+    message = "RELAY_PUBLIC_ORIGIN must be a canonical HTTPS origin without a path, query or credentials"
+    try:
+        parsed = urlsplit(value)
+        host = parsed.hostname or ""
+        if (parsed.scheme != "https" or not host or parsed.username is not None
+                or parsed.password is not None or parsed.path or parsed.query or parsed.fragment):
+            raise ValueError()
+        try:
+            address = ipaddress.ip_address(host)
+            authority = f"[{address.compressed}]" if address.version == 6 else str(address)
+        except ValueError:
+            if len(host) > 253 or not all(re.fullmatch(
+                    r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) for label in host.split(".")):
+                raise ValueError() from None
+            authority = host
+        port = parsed.port
+        if port == 0:
+            raise ValueError()
+        if port is not None and port != 443:
+            authority += f":{port}"
+        canonical = f"https://{authority}"
+        if value != canonical:
+            raise ValueError()
+        return canonical
+    except ValueError:
+        raise RuntimeError(message) from None
 
 
 class LoginRequest(BaseModel):
@@ -33,7 +68,7 @@ def session_dependency(auth_service):
     return require_session
 
 
-def create_auth_router(auth_service, *, secure_cookie=False):
+def create_auth_router(auth_service, *, secure_cookie=False, public_origin=None):
     router = APIRouter(prefix="/api/auth", tags=["auth"])
     current_session = session_dependency(auth_service)
 
@@ -41,7 +76,11 @@ def create_auth_router(auth_service, *, secure_cookie=False):
     def login(body: LoginRequest, request: Request, response: Response):
         # Reject explicit cross-site credential submissions even before a session exists.
         origin = request.headers.get("origin")
-        if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+        if public_origin is not None:
+            mismatch = origin is not None and origin != public_origin
+        else:
+            mismatch = bool(origin) and origin.rstrip("/") != str(request.base_url).rstrip("/")
+        if mismatch:
             raise HTTPException(403, "Cross-origin login is not allowed")
         try:
             credentials = auth_service.login(

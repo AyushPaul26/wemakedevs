@@ -44,15 +44,9 @@ for _ in {1..60}; do
 done
 [[ "$relay_db_ready" == true ]] || { echo 'FalkorDB did not become ready.' >&2; exit 1; }
 
-# Only an explicit first-install flag can initialize empty persistent storage.
-# Upgrades/adoption remain offline operator commands, never a health side effect.
-if [[ "${RELAY_UPGRADE_DATA:-0}" == 1 ]]; then
-  python scripts/startup.py --upgrade --quiesced
-elif [[ "${RELAY_INITIALIZE_DATA:-0}" == 1 || "${RELAY_STORAGE_MODE:-ephemeral}" == ephemeral ]]; then
-  python scripts/startup.py --initialize --quiesced
-else
-  python scripts/startup.py --check
-fi
+# Strict boot flags, storage checks, optional one-time identities and execution
+# opt-in all finish while this supervisor has no HTTP/executor writer running.
+python scripts/startup.py --hosted --quiesced
 
 uvicorn relay.hosting:create_hosted_app --factory --app-dir backend \
   --host 0.0.0.0 --port "${PORT:-10000}" --no-access-log &

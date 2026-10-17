@@ -13,6 +13,23 @@ services:
         value: "10000"
       - key: RELAY_ACCESS_PASSWORD
         generateValue: true
+      # Explicit demo-only startup: separate requester/auditor accounts and
+      # executor opt-in. Finance still requires the auditor's approval.
+      - key: RELAY_ENABLE_EXECUTION
+        value: "1"
+      - key: RELAY_PROVISION_DEMO_ACCOUNTS
+        value: "1"
+      - key: RELAY_OPERATOR_LOGIN
+        value: demo-operator
+      - key: RELAY_OPERATOR_PASSWORD
+        generateValue: true
+      - key: RELAY_FINANCE_AUDITOR_LOGIN
+        value: demo-auditor
+      - key: RELAY_FINANCE_AUDITOR_PASSWORD
+        generateValue: true
+      # Set to the actual service URL in Render before testing sign-in.
+      - key: RELAY_PUBLIC_ORIGIN
+        value: https://relay-company-brain.onrender.com
       - key: RELAY_MODEL_BASE_URL
         value: https://api.groq.com/openai/v1
       - key: RELAY_MODEL

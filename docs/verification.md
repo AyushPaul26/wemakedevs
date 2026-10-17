@@ -1,5 +1,39 @@
 # Verification record
 
+## Free-tier deployment fixes — 18 October 2026
+
+The complete backend suite passed: **360 passed in 129.55s**, with no retries.
+This includes explicit hosted executor opt-in, offline demo member provisioning,
+and exact HTTPS-origin login behind an internal HTTP proxy. Backend/scripts Ruff,
+Bash syntax, Compose configuration, and whitespace checks passed. No frontend
+source changed in this follow-up.
+
+The final container image
+`sha256:107cdb800b9fa5f6dbe1505da2a50cfcbc5605c7157eea1ec4e06c03c17c2e91`
+built with frozen dependencies and verified TLS. A disposable container ran under
+512 MiB as UID 10001 with no published host ports. Before and after restarting
+that container, owner/operator/Finance-auditor sign-ins succeeded, the executor
+was enabled, compiled frontend assets loaded, authenticated APIs worked, unrelated
+origins and missing CSRF tokens were rejected, and cookies retained
+`Secure; HttpOnly; SameSite=Lax`. The member-management CLI was present and usable.
+The disposable container was removed. This tests a container restart, not durable
+storage across free-host replacement.
+
+The existing public Render service's health endpoint returned 200 with a connected
+graph in Guided demo mode. Its root still returned the earlier Basic Auth
+challenge (401), confirming the upgraded session UI was not serving at that check.
+No Render deployment or paid activation occurred. The running Codex environment
+still had no `RENDER_API_KEY` binding or process variable; a key visible in an
+editor draft does not establish runtime access. Live Groq was not reverified.
+
+Private evidence is in `.data/sdd/relay-deploy/`: `backend-tests.txt`,
+`container-build.txt`, `container-smoke.txt`, and the replayable
+`free-container-smoke.py`. No demo video or credentials are included in this
+follow-up's Git changes. The following sections retain the earlier workflow
+release's detailed browser, migration and replacement-recovery evidence.
+
+## Earlier workflow release
+
 Relay Workflows was verified in the cloud checkout on 2026-10-17 with real
 FalkorDB, authenticated members, the background executor and Chromium. The
 existing free Render app remains on the earlier `c40a08f` baseline, verified live

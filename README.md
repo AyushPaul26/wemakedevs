@@ -32,7 +32,7 @@ Existing databases require an explicit backup and migration while application wr
 
 ## Public test deployment
 
-[Create a Render test deployment](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2FAyushPaul26%2Fwemakedevs) from branch `work`. The Blueprint selects one free Docker service and generates a browser-access password. This opens Render setup; the running app URL is provided after deployment succeeds. See [deployment instructions](docs/deployment.md) for login, Groq configuration, and temporary-storage limits.
+[Create a Render test deployment](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2FAyushPaul26%2Fwemakedevs) from branch `work`. The Blueprint selects one free Docker service, generates separate owner/operator/auditor passwords, and explicitly enables the workflow executor after offline setup. Finance approval is still required. For the existing service, update its settings and manually deploy the reviewed commit instead of creating a duplicate. See [deployment instructions](docs/deployment.md) for the exact HTTPS origin, login, Groq configuration, and temporary-storage limits.
 
 ## Optional Groq model
 

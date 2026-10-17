@@ -15,7 +15,7 @@ from redis.exceptions import RedisError
 from relay.access import AccessContext, AccessError, AccessService
 from relay.agents import InvestigationService
 from relay.auth import AuthError, AuthService
-from relay.auth_routes import COOKIE_NAME, create_auth_router, session_dependency
+from relay.auth_routes import COOKIE_NAME, create_auth_router, session_dependency, validate_public_origin
 from relay.company import CompanyService
 from relay.evidence import EvidenceService
 from relay.graph_store import GraphStore
@@ -39,7 +39,8 @@ PRIVATE_HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"
 
 
 def create_app(store=None, checkpoint_path: str | Path | None = None, *, secure_cookie=False,
-               data_dir: str | Path | None = None) -> FastAPI:
+               data_dir: str | Path | None = None, public_origin: str | None = None) -> FastAPI:
+    public_origin = validate_public_origin(public_origin)
     store = store if store is not None else GraphStore()
     root = Path(data_dir or (Path(checkpoint_path).parent if checkpoint_path else
                             os.getenv("RELAY_DATA_DIR", ".data")))
@@ -143,7 +144,7 @@ def create_app(store=None, checkpoint_path: str | Path | None = None, *, secure_
             raise HTTPException(503, "FalkorDB is unavailable. Retry shortly.")
         return {"status": "ok", "graph": "connected", "mode": app.state.service.mode}
 
-    app.include_router(create_auth_router(auth, secure_cookie=secure_cookie))
+    app.include_router(create_auth_router(auth, secure_cookie=secure_cookie, public_origin=public_origin))
     app.include_router(build_source_router(sources, context, context))
     app.include_router(create_workflow_router(workflows, auth))
 

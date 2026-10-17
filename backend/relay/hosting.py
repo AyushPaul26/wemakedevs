@@ -23,7 +23,8 @@ def create_hosted_app(store=None, checkpoint_path: str | Path | None = None) -> 
     password = os.environ.get("RELAY_ACCESS_PASSWORD", "")
     if password and len(password) < 16:
         raise RuntimeError("RELAY_ACCESS_PASSWORD must contain at least 16 characters.")
-    app = create_app(store=store, checkpoint_path=checkpoint_path, secure_cookie=True)
+    app = create_app(store=store, checkpoint_path=checkpoint_path, secure_cookie=True,
+                     public_origin=os.getenv("RELAY_PUBLIC_ORIGIN"))
 
     @app.exception_handler(Exception)
     async def private_server_error(request, exc):
