@@ -19,7 +19,7 @@ from relay.auth_routes import COOKIE_NAME, create_auth_router, session_dependenc
 from relay.company import CompanyService
 from relay.evidence import EvidenceService
 from relay.graph_store import GraphStore
-from relay.llm import ModelError
+from relay.llm import ModelError, ModelResponseError
 from relay.migrations import ensure_schema
 from relay.models import InvestigationRequest, RippleRequest, SourceRequest
 from relay.parsers import ParseError
@@ -36,6 +36,26 @@ from relay.workflow_tools import WorkflowTools
 logger = logging.getLogger(__name__)
 PRIVATE_HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
                    "X-Content-Type-Options": "nosniff"}
+# Match only fixed application messages. Never log an exception's arbitrary text,
+# its cause, a provider response, request data, or generated output.
+_MODEL_ERROR_REASONS = {
+    "Live model access needs RELAY_MODEL_API_KEY in environment settings.": "missing_model_key",
+    "RELAY_MODEL_BASE_URL must be an absolute HTTP(S) API URL.": "invalid_model_url",
+    "The model provider is unavailable or timed out. Please retry.": "provider_transport",
+    "Model authentication failed. Check RELAY_MODEL_API_KEY in environment settings.": "provider_authentication",
+    "The model provider is rate-limited. Please retry shortly.": "provider_rate_limited",
+    "The model provider is unavailable. Please retry or check the model configuration.": "provider_http_error",
+    "The model returned unreadable JSON. Please retry.": "response_json",
+    "The model returned an invalid response. Please retry.": "response_schema",
+    "The model cited evidence outside the retrieved graph. Please retry.": "citation_scope",
+    "The model proposed a task without valid evidence or owner. Please retry.": "action_scope",
+    "The model omitted evidence for its proposed answer. Please retry.": "citation_missing",
+    "The model cited an unavailable evidence version. Please retry.": "citation_version",
+    "The model omitted exact attachment citations. Please retry.": "citation_exact_missing",
+    "The model cited an unavailable report. Please retry.": "report_scope",
+    "The model returned an invalid reconciliation narrative": "report_narrative",
+    "The model provider is unavailable; retry is available": "provider_unavailable",
+}
 
 
 def create_app(store=None, checkpoint_path: str | Path | None = None, *, secure_cookie=False,
@@ -134,6 +154,10 @@ def create_app(store=None, checkpoint_path: str | Path | None = None, *, secure_
 
     @app.exception_handler(ModelError)
     async def model_error(request, exc):
+        category = "response_validation" if isinstance(exc, ModelResponseError) else "provider"
+        message = exc.args[0] if len(exc.args) == 1 and type(exc.args[0]) is str else None
+        reason = _MODEL_ERROR_REASONS.get(message, "unknown")
+        logger.warning("Model investigation failed category=%s reason=%s", category, reason)
         return JSONResponse(status_code=502, content={"detail": "The model could not complete this investigation. "
             "Check provider settings and quota, then retry. Your previous memory is unchanged."})
 
