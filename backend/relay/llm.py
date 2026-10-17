@@ -16,6 +16,11 @@ from relay.workflow_models import EvidenceRef
 class ModelError(RuntimeError):
     """Recoverable provider failure, safe to show without exposing response bodies."""
 
+    def __init__(self, *args, provider_status: int | None = None):
+        super().__init__(*args)
+        self.provider_status = (provider_status if type(provider_status) is int
+                                and 400 <= provider_status <= 599 else None)
+
 
 class ModelResponseError(ModelError):
     """The provider returned malformed or unsupported evidence references."""
@@ -122,6 +127,93 @@ If evidence cannot answer the question, explain what is missing and return no sp
 """
 
 
+def _run_model_context(run: dict) -> dict:
+    """Project already-authorized derived facts; never reuse raw Finance grants.
+
+    Stored results and the Guided demo keep their full receipts. The live model
+    needs the calculated outcome once, not nested graphs and recursive archives.
+    Omitted facts are marked explicitly and included monetary values stay exact.
+    """
+    truncated = False
+
+    def pick(record, fields):
+        nonlocal truncated
+        selected = {}
+        for key in fields:
+            if key not in record:
+                continue
+            value = record[key]
+            if (value is None or type(value) in (bool, int, float)
+                    or (isinstance(value, str) and len(value) <= 512)):
+                selected[key] = value
+            else:
+                # Omit an oversized field intact rather than altering a value.
+                truncated = True
+        return selected
+
+    summary = pick(run, ("run_id", "status", "generation"))
+    outputs = run.get("outputs", [])
+    summary["outputs"] = [pick(item, ("id", "kind", "stale")) for item in
+                          sorted(outputs, key=lambda item: bool(item.get("stale")))[:20]]
+    summary["outputs_total"] = len(outputs)
+    decisions = run.get("decisions", [])
+    summary["decisions"] = [pick(item, ("gate_kind", "status")) for item in decisions[:20]]
+    summary["decisions_total"] = len(decisions)
+    summary["results"] = []
+    results = run.get("results", [])
+    summary["results_total"] = len(results)
+    comparisons = []
+    for step in results[:6]:
+        tool = step.get("tool")
+        result = step.get("result") or {}
+        if tool == "company_context":
+            projected = pick(result, ("project_id", "project_label", "owner_entity_id",
+                                     "owner_status", "launch_blocker", "impact"))
+        elif tool == "publish_report":
+            comparison = result.get("comparison") or {}
+            projected_comparison = pick(comparison, ("currency", "invoice_total",
+                                                     "order_total", "difference"))
+            findings = comparison.get("findings", [])
+            projected_comparison.update(
+                findings=[pick(item, ("item_id", "kind", "invoice_row", "order_row",
+                                      "expected", "actual")) for item in findings[:20]],
+                findings_total=len(findings), findings_truncated=len(findings) > 20)
+            truncated |= projected_comparison["findings_truncated"]
+            comparisons.append(projected_comparison)
+            projected = {"comparison": projected_comparison,
+                         **pick(result, ("narrative_mode",))}
+        elif tool == "upsert_case":
+            projected = pick(result, ("outcome", "case_id", "reason"))
+        elif tool == "archive_run":
+            projected = pick(result, ("outcome",))
+        else:
+            truncated = True
+            continue
+        summary["results"].append({**pick(step, ("tool", "status")), "result": projected})
+    summary["truncated"] = (truncated or len(outputs) > 20 or len(decisions) > 20
+                            or len(results) > 6)
+    # Count escaped JSON too: Unicode and unusually long recorded labels must
+    # not turn this compact summary back into an unbounded provider request.
+    while len(json.dumps(summary)) > 8000:
+        summary["truncated"] = True
+        comparison = next((item for item in reversed(comparisons) if item["findings"]), None)
+        if comparison is not None:
+            comparison["findings"].pop()
+            comparison["findings_truncated"] = True
+        elif summary["decisions"]:
+            summary["decisions"].pop()
+        elif len(summary["outputs"]) > 1:
+            summary["outputs"].pop()
+        elif summary["results"]:
+            summary["results"].pop()
+        elif summary["outputs"]:
+            summary["outputs"].pop()
+        else:
+            # Only bounded run identifiers/status and omission counts remain.
+            break
+    return summary
+
+
 class OpenAICompatibleClient:
     def __init__(self, config: ModelConfig | None = None, http_client: httpx.AsyncClient | None = None):
         self.config = config or get_model_config()
@@ -146,13 +238,19 @@ class OpenAICompatibleClient:
         # metadata without duplicating the bounded evidence text in the prompt.
         evidence["chunks"] = [{k: v for k, v in chunk.items() if k != "text"}
                               for chunk in context.get("chunks", [])]
+        system = _SYSTEM
+        if "permitted_run_outputs" in context:
+            evidence["permitted_run_outputs"] = _run_model_context(context["permitted_run_outputs"])
+            system += ("\nRun output summaries can be truncated. Respect omission counts and "
+                       "stale flags; do not claim to have reviewed omitted findings or outputs. "
+                       "Cite these derived facts with output_ids, not original Finance source IDs.")
         try:
             response = await self._client.post(
                 f"{self.config.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.config.api_key}"},
                 json={"model": self.config.model, "temperature": 0.1, "max_tokens": 2200,
                       "response_format": {"type": "json_object"},
-                      "messages": [{"role": "system", "content": _SYSTEM},
+                      "messages": [{"role": "system", "content": system},
                                    {"role": "user", "content": json.dumps(
                                        {"question": question, "evidence": evidence})}]},
                 timeout=httpx.Timeout(25.0, connect=10.0),
@@ -160,11 +258,14 @@ class OpenAICompatibleClient:
         except httpx.RequestError as exc:
             raise ModelError("The model provider is unavailable or timed out. Please retry.") from exc
         if response.status_code in {401, 403}:
-            raise ModelError("Model authentication failed. Check RELAY_MODEL_API_KEY in environment settings.")
+            raise ModelError("Model authentication failed. Check RELAY_MODEL_API_KEY in environment settings.",
+                             provider_status=response.status_code)
         if response.status_code == 429:
-            raise ModelError("The model provider is rate-limited. Please retry shortly.")
+            raise ModelError("The model provider is rate-limited. Please retry shortly.",
+                             provider_status=response.status_code)
         if not response.is_success:
-            raise ModelError("The model provider is unavailable. Please retry or check the model configuration.")
+            raise ModelError("The model provider is unavailable. Please retry or check the model configuration.",
+                             provider_status=response.status_code)
         try:
             payload = json.loads(response.json()["choices"][0]["message"]["content"])
         except (ValueError, TypeError, KeyError, IndexError) as exc:

@@ -82,3 +82,43 @@ def test_unknown_model_error_never_logs_its_message_or_exception_chain(caplog, e
     assert records[0].getMessage() == f"Model investigation failed category={category} reason=unknown"
     assert records[0].exc_info is None and records[0].stack_info is None
     assert "PRIVATE_" not in caplog.text + response.text
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 413, 429, 500, 599])
+def test_provider_http_status_is_logged_without_response_data(caplog, status):
+    error = ModelError("The model provider is unavailable. Please retry or check the model configuration.")
+    error.provider_status = status
+    with caplog.at_level(logging.WARNING, logger="relay.api"):
+        response = request_failure(error, RuntimeError("PRIVATE_PROVIDER_BODY"))
+    assert response.status_code == 502
+    assert response.json() == {"detail": GENERIC_DETAIL}
+    records = [record for record in caplog.records if record.name == "relay.api"]
+    assert len(records) == 1
+    assert records[0].getMessage() == (
+        "Model investigation failed category=provider reason=provider_http_error "
+        f"provider_status={status}"
+    )
+    assert records[0].exc_info is None and "PRIVATE_" not in caplog.text
+
+
+class PrivateStatus:
+    def __str__(self):
+        raise AssertionError("Untrusted provider status must never be formatted")
+
+    __repr__ = __str__
+
+
+@pytest.mark.parametrize("status", [None, True, False, 399, 600, -1, 413.0, "413", "PRIVATE_API_KEY", PrivateStatus()],
+                         ids=["none", "true", "false", "below", "above", "negative", "float", "numeric-string", "secret", "object"])
+def test_invalid_provider_status_is_omitted_without_formatting(caplog, status):
+    error = ModelError("The model provider is unavailable. Please retry or check the model configuration.")
+    # Bypass any constructor validation to verify the logging boundary itself.
+    error.provider_status = status
+    with caplog.at_level(logging.WARNING, logger="relay.api"):
+        response = request_failure(error)
+    assert response.status_code == 502
+    assert response.json() == {"detail": GENERIC_DETAIL}
+    records = [record for record in caplog.records if record.name == "relay.api"]
+    assert len(records) == 1
+    assert records[0].getMessage() == "Model investigation failed category=provider reason=provider_http_error"
+    assert records[0].exc_info is None and "PRIVATE_" not in caplog.text
