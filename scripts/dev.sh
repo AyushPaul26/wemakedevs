@@ -40,6 +40,13 @@ PY
 
 ./scripts/start-db.sh
 mkdir -p .data
+export RELAY_DATA_DIR="${RELAY_DATA_DIR:-$relay_root/.data}"
+# A missing marker or old schema must be handled offline before any API writer.
+if [[ "${RELAY_INITIALIZE_DATA:-0}" == 1 ]]; then
+  .venv/bin/python scripts/startup.py --initialize --quiesced
+else
+  .venv/bin/python scripts/startup.py --check
+fi
 relay_api_pid=''
 relay_frontend_pid=''
 cleanup() {

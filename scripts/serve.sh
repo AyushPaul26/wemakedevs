@@ -11,7 +11,9 @@ fi
 unset relay_password
 export RELAY_FALKORDB_HOST=127.0.0.1
 export RELAY_FALKORDB_PORT=6379
-mkdir -p /app/.data/graph
+export RELAY_DATA_DIR="${RELAY_DATA_DIR:-/app/.data}"
+umask 077
+mkdir -p "$RELAY_DATA_DIR/graph"
 
 relay_db_pid=''
 relay_web_pid=''
@@ -27,21 +29,30 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 redis-server --bind 127.0.0.1 --port 6379 --protected-mode yes \
-  --dir /app/.data/graph --save '' --appendonly yes --appendfsync everysec \
+  --dir "$RELAY_DATA_DIR/graph" --save '' --appendonly yes --appendfsync everysec \
   --maxmemory 192mb --maxmemory-policy noeviction \
   --loadmodule /opt/falkordb/falkordb.so THREAD_COUNT 2 OMP_THREAD_COUNT 1 &
 relay_db_pid=$!
 relay_db_ready=false
 for _ in {1..60}; do
   kill -0 "$relay_db_pid" 2>/dev/null || { echo 'FalkorDB exited during startup.' >&2; exit 1; }
-  if redis-cli -e GRAPH.QUERY relay_deployment_probe 'RETURN 1' >/dev/null 2>&1; then
-    redis-cli -e GRAPH.DELETE relay_deployment_probe >/dev/null
+  if redis-cli -e PING >/dev/null 2>&1; then
     relay_db_ready=true
     break
   fi
   sleep 1
 done
 [[ "$relay_db_ready" == true ]] || { echo 'FalkorDB did not become ready.' >&2; exit 1; }
+
+# Only an explicit first-install flag can initialize empty persistent storage.
+# Upgrades/adoption remain offline operator commands, never a health side effect.
+if [[ "${RELAY_UPGRADE_DATA:-0}" == 1 ]]; then
+  python scripts/startup.py --upgrade --quiesced
+elif [[ "${RELAY_INITIALIZE_DATA:-0}" == 1 || "${RELAY_STORAGE_MODE:-ephemeral}" == ephemeral ]]; then
+  python scripts/startup.py --initialize --quiesced
+else
+  python scripts/startup.py --check
+fi
 
 uvicorn relay.hosting:create_hosted_app --factory --app-dir backend \
   --host 0.0.0.0 --port "${PORT:-10000}" --no-access-log &

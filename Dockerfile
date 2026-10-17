@@ -36,14 +36,15 @@ WORKDIR /app
 COPY --from=dependencies /app/.venv /app/.venv
 COPY --from=frontend /build/frontend/dist /app/frontend/dist
 COPY backend/relay /app/backend/relay
-COPY scripts/serve.sh /app/scripts/serve.sh
+COPY scripts/serve.sh scripts/startup.py scripts/restore.py /app/scripts/
 RUN chmod -R a+rX /app/backend /app/frontend /app/.venv /app/scripts && \
     mkdir -p /app/.data/graph && chown -R 10001:10001 /app/.data && \
     chmod 755 /app/scripts/serve.sh
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    RELAY_CHECKPOINT_PATH=/app/.data/checkpoints.sqlite \
+    RELAY_DATA_DIR=/app/.data \
+    RELAY_STORAGE_MODE=ephemeral \
     RELAY_STATIC_DIR=/app/frontend/dist \
     PORT=10000
 USER 10001:10001

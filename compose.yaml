@@ -20,5 +20,24 @@ services:
       start_period: 5s
     stop_grace_period: 30s
 
+  relay-persistent:
+    profiles: ["persistent"]
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${RELAY_WEB_PORT:-10000}:10000"
+    environment:
+      RELAY_ACCESS_PASSWORD:
+      RELAY_DATA_DIR: /app/.data
+      RELAY_STORAGE_MODE: persistent
+      RELAY_INITIALIZE_DATA: ${RELAY_INITIALIZE_DATA:-0}
+      RELAY_MODEL_API_KEY:
+      RELAY_MODEL_BASE_URL: ${RELAY_MODEL_BASE_URL:-https://api.groq.com/openai/v1}
+      RELAY_MODEL: ${RELAY_MODEL:-openai/gpt-oss-20b}
+    volumes:
+      - relay-private-data:/app/.data
+    stop_grace_period: 60s
+
 volumes:
   falkordb-data:
+  relay-private-data:

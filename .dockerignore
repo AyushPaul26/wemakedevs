@@ -17,6 +17,8 @@
 !frontend/public/**
 !scripts/
 !scripts/serve.sh
+!scripts/startup.py
+!scripts/restore.py
 **/__pycache__/
 **/*.pyc
 **/.env*

@@ -1,0 +1,39 @@
+# REVIEW ONLY: creates a separate paid service/disk. Do not sync this Blueprint
+# until the owner has reviewed Render's current account-specific cost quote.
+# The existing free service and ../render.yaml are intentionally separate.
+services:
+  - type: web
+    name: relay-persistent-review
+    runtime: docker
+    plan: starter
+    branch: work
+    autoDeployTrigger: off
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    numInstances: 1
+    disk:
+      name: relay-private-data
+      mountPath: /app/.data
+      sizeGB: 10
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: RELAY_DATA_DIR
+        value: /app/.data
+      - key: RELAY_STORAGE_MODE
+        value: persistent
+      - key: RELAY_INITIALIZE_DATA
+        value: "0"
+      # Enter verified ingress proxy IPs/CIDRs for this deployment. Never assume
+      # wildcard trust; see docs/deployment.md before HTTPS session validation.
+      - key: FORWARDED_ALLOW_IPS
+        sync: false
+      - key: RELAY_ACCESS_PASSWORD
+        generateValue: true
+      - key: RELAY_MODEL_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: RELAY_MODEL
+        value: openai/gpt-oss-20b
+      - key: RELAY_MODEL_API_KEY
+        sync: false
