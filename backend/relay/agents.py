@@ -1,8 +1,10 @@
 """Researcher → Planner → Archivist, with durable workflow and company memory."""
 
 import asyncio
+import json
 import re
 from collections import deque
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypedDict
@@ -13,6 +15,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
 
 from relay.llm import OpenAICompatibleClient, get_model_config, validate_plan
+from relay.access import AccessContext
 
 
 class _State(TypedDict, total=False):
@@ -25,6 +28,9 @@ class _State(TypedDict, total=False):
     result: dict
     turn: int
     investigation_ids: list[str]
+    access: dict | None
+    source_refs: list[dict]
+    run_id: str | None
 
 
 def _unique(values):
@@ -33,6 +39,37 @@ def _unique(values):
 
 def _demo_plan(question: str, context: dict) -> dict:
     """Compose evidence from typed graph relationships; no model call is represented."""
+    if context.get("permitted_run_outputs"):
+        run = context["permitted_run_outputs"]
+        paragraphs = [f"Guided demo: this review is {run['status'].replace('_', ' ')}."]
+        for decision in run.get("decisions", []):
+            paragraphs.append(f"{decision['gate_kind'].replace('_', ' ').capitalize()}: "
+                              f"{decision['status'].replace('_', ' ')}.")
+        for step in run.get("results", []):
+            result = step.get("result", {})
+            comparison = result.get("comparison")
+            if comparison:
+                paragraphs.append(f"The report records a difference of {comparison['difference']} "
+                                  f"{comparison['currency']}. This alone does not establish a launch blocker.")
+            else:
+                paragraphs.append(f"{step['tool'].replace('_', ' ').capitalize()}: "
+                    f"{step['status'].replace('_', ' ')}. " + json.dumps(result, ensure_ascii=False)[:1500])
+        if not run.get("outputs"):
+            paragraphs.append("No permitted completed report is available yet.")
+        return {"answer": "\n\n".join(paragraphs), "source_ids": [], "node_ids": [], "actions": [],
+                "output_ids": [item["id"] for item in run.get("outputs", [])]}
+    if context.get("selected_sources"):
+        refs = context.get("evidence_refs", [])
+        sources = [s for s in context["sources"] if s["id"] in context["selected_sources"]]
+        paragraphs = ["Guided demo: these are retrieved excerpts from your selected files. "
+                      "A live model is needed to interpret a free-form question about them."]
+        paragraphs.extend(f"{s['title']}: {s.get('excerpt', '')} [{s['id']}]" for s in sources)
+        if context.get("truncated"):
+            paragraphs.append("The evidence context is truncated; this is not an exhaustive file review.")
+        if context.get("missing"):
+            paragraphs.append("Some selected files have no readable extracted text yet.")
+        return {"answer": "\n\n".join(paragraphs), "source_ids": [s["id"] for s in sources],
+                "node_ids": [], "actions": [], "evidence_refs": refs}
     query = question.casefold()
     supported = re.search(
         r"launch|atlas|meridian|compan|payment|checkout|owner|owns|responsib|incident|"
@@ -187,7 +224,12 @@ class InvestigationService:
         self._session_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
 
     async def _research(self, state: _State) -> dict:
-        context = await asyncio.to_thread(self.store.retrieve, state["question"])
+        access = AccessContext(**state["access"]) if state.get("access") else None
+        if access is None:
+            context = await asyncio.to_thread(self.store.retrieve, state["question"])
+        else:
+            context = await asyncio.to_thread(self.store.retrieve, state["question"], access=access,
+                source_refs=state.get("source_refs", []), run_id=state.get("run_id"))
         previous = len(context.get("prior_memories", []))
         turn = state.get("turn", 0) + 1
         return {"context": context, "turn": turn, "steps": [{"agent": "Researcher",
@@ -217,16 +259,33 @@ class InvestigationService:
                   "answer": state["plan"]["answer"], "source_ids": state["plan"]["source_ids"],
                   "node_ids": state["plan"]["node_ids"], "steps": steps, "actions": actions,
                   "created_at": state["created_at"], "mode": self.mode}
-        await asyncio.to_thread(self.store.save_actions, actions)
-        await asyncio.to_thread(self.store.save_investigation, result)
+        if state["plan"].get("evidence_refs"):
+            result["evidence_refs"] = state["plan"]["evidence_refs"]
+        if state["plan"].get("output_ids"):
+            result["output_ids"] = state["plan"]["output_ids"]
+        if state.get("run_id"):
+            result["run_id"] = state["run_id"]
+        access = AccessContext(**state["access"]) if state.get("access") else None
+        if access is None:
+            await asyncio.to_thread(self.store.save_actions, actions)
+            await asyncio.to_thread(self.store.save_investigation, result)
+        else:
+            for action in actions:
+                action.update(requester_id=access.member_id, workspace_id=access.workspace_id,
+                              evidence_refs=result.get("evidence_refs", []))
+            result.update(requester_id=access.member_id, workspace_id=access.workspace_id)
+            await asyncio.to_thread(self.store.save_investigation, result, access=access)
         return {"result": result, "steps": steps,
                 "investigation_ids": (state.get("investigation_ids", []) + [result["id"]])[-100:]}
 
-    async def investigate(self, question: str, session_id: str | None = None) -> dict:
+    async def investigate(self, question: str, session_id: str | None = None, *, access=None,
+                          source_refs=(), run_id=None) -> dict:
         question = question.strip()
         if not question or len(question) > 2000:
             raise ValueError("Question must contain between 1 and 2000 characters.")
         thread_id = session_id or str(uuid4())
+        if access is not None:
+            thread_id = f"{access.workspace_id}:{access.member_id}:{thread_id}"
         # Each active request keeps its lock alive; idle sessions need no in-memory registry.
         lock = self._session_locks.setdefault(thread_id, asyncio.Lock())
         async with lock:
@@ -242,7 +301,10 @@ class InvestigationService:
                 graph = workflow.compile(checkpointer=saver)
                 state = await graph.ainvoke(
                     {"question": question, "investigation_id": f"investigation-{uuid4()}",
-                     "created_at": datetime.now(timezone.utc).isoformat()},
+                     "created_at": datetime.now(timezone.utc).isoformat(),
+                     "access": asdict(access) if access else None,
+                     "source_refs": [r.model_dump() if hasattr(r, "model_dump") else r
+                                     for r in source_refs], "run_id": run_id},
                     {"configurable": {"thread_id": thread_id}},
                 )
                 return state["result"]

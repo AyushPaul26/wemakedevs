@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from relay.workflow_models import EvidenceRef
+
 
 class ModelError(RuntimeError):
     """Recoverable provider failure, safe to show without exposing response bodies."""
@@ -58,6 +60,8 @@ class _Plan(BaseModel):
     source_ids: list[str] = Field(default_factory=list, max_length=30)
     node_ids: list[str] = Field(default_factory=list, max_length=30)
     actions: list[_Proposal] = Field(default_factory=list, max_length=5)
+    evidence_refs: list[EvidenceRef] = Field(default_factory=list, max_length=100)
+    output_ids: list[str] = Field(default_factory=list, max_length=20)
 
 
 def validate_plan(payload: Any, context: dict) -> dict:
@@ -79,7 +83,21 @@ def validate_plan(payload: Any, context: dict) -> dict:
             raise ModelResponseError("The model proposed a task without valid evidence or owner. Please retry.")
     if (plan.node_ids or plan.actions) and not plan.source_ids:
         raise ModelResponseError("The model omitted evidence for its proposed answer. Please retry.")
-    return plan.model_dump()
+    permitted = {json.dumps(EvidenceRef.model_validate(ref).model_dump(exclude_none=True),
+                            sort_keys=True) for ref in context.get("evidence_refs", [])}
+    for ref in plan.evidence_refs:
+        if (ref.source_id not in plan.source_ids or
+                json.dumps(ref.model_dump(exclude_none=True), sort_keys=True) not in permitted):
+            raise ModelResponseError("The model cited an unavailable evidence version. Please retry.")
+    # Exact references must be present when an attachment is cited. Never fabricate
+    # version history for legacy source-only citations.
+    versioned_sources = {ref["source_id"] for ref in context.get("evidence_refs", [])}
+    if set(plan.source_ids) & versioned_sources - {ref.source_id for ref in plan.evidence_refs}:
+        raise ModelResponseError("The model omitted exact attachment citations. Please retry.")
+    output_ids = {item["id"] for item in context.get("permitted_run_outputs", {}).get("outputs", [])}
+    if not set(plan.output_ids) <= output_ids:
+        raise ModelResponseError("The model cited an unavailable report. Please retry.")
+    return plan.model_dump(exclude_none=True)
 
 
 _SYSTEM = """You are Relay, an evidence-backed assistant for the fictional Meridian sample workspace.
@@ -89,6 +107,14 @@ A DEPENDS_ON edge goes FROM the dependent TO its prerequisite. Do not infer caus
 Use prior investigations only as history, not independent evidence. Do not promise incident recovery times.
 Return only a JSON object: {"answer": "concise answer with [source-id] citations", "source_ids": [],
 "node_ids": [], "actions": [{"title": "...", "description": "...", "owner": "...", "source_ids": []}]}.
+When citing versioned attachments, also return "evidence_refs": [] with exact supplied evidence
+objects (source_id, version_id, chunk_id, locator, title). Do not invent or modify locators.
+Selected excerpts may be truncated: never claim you reviewed unseen portions of a file.
+An invoice discrepancy alone is not proof of a blocked launch; require explicit policy evidence
+and the correctly directed dependency path. Prior run outputs describe actual recorded tools only.
+For run follow-ups, return "output_ids": [] containing the supplied artifact IDs used in your answer.
+Do not turn output access into permission to read the original Finance files. Refer to the linked
+run for report provenance, without formatting output IDs as source citations.
 Use only supplied source IDs, node IDs, and exact recorded owner names. Every proposed task needs evidence.
 Actions are suggestions awaiting explicit human approval, never executed or approved by you. Suggest up
 to three useful internal follow-ups only when warranted. Never include status or approval fields.
@@ -113,6 +139,13 @@ class OpenAICompatibleClient:
             {key: memory.get(key) for key in ("id", "question", "answer", "source_ids")}
             for memory in context.get("prior_memories", [])[-5:]
         ]
+        for key in ("chunks", "evidence_refs", "truncated", "missing", "permitted_run_outputs"):
+            if key in context:
+                evidence[key] = context[key]
+        # The exact chunk text is already in the source excerpts; retain locator
+        # metadata without duplicating the bounded evidence text in the prompt.
+        evidence["chunks"] = [{k: v for k, v in chunk.items() if k != "text"}
+                              for chunk in context.get("chunks", [])]
         try:
             response = await self._client.post(
                 f"{self.config.base_url}/chat/completions",

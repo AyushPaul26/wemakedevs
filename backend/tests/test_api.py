@@ -7,15 +7,19 @@ from fastapi.testclient import TestClient
 
 from relay.api import create_app
 from relay.graph_store import GraphStore
+from api_helpers import prepare, login, TEST_PASSWORD
 
 
 @pytest.fixture
 def workspace(tmp_path, monkeypatch):
     monkeypatch.delenv("RELAY_MODEL_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("RELAY_ACCESS_PASSWORD", TEST_PASSWORD)
     store = GraphStore(graph_name=f"relay_test_api_{uuid4().hex}")
+    prepare(store, tmp_path)
     app = create_app(store=store, checkpoint_path=tmp_path / "checkpoints.sqlite")
     with TestClient(app) as client:
+        login(client)
         yield client, store, app
     store.graph.delete()
 
@@ -30,10 +34,12 @@ def test_bootstrap_health_and_source_provenance(workspace):
     payload = result.json()
     assert payload["workspace"]["is_demo"] is True
     assert payload["capabilities"]["mode"] == "demo"
-    assert payload["capabilities"]["document_ingestion"] is False
+    assert payload["capabilities"]["document_ingestion"] is True
     assert payload["stats"]["entities"] == len(payload["nodes"])
     source = payload["sources"][0]
-    assert client.get(f'/api/sources/{source["id"]}').json() == source
+    detail = client.get(f'/api/sources/{source["id"]}').json()
+    assert detail["id"] == source["id"] and detail["chunks"]
+    assert "excerpt" not in source
     assert client.get("/api/sources/does-not-exist").status_code == 404
 
 
@@ -76,7 +82,7 @@ def test_ripple_validates_origin_and_preserves_facts(workspace):
 def test_note_storage_is_literal_and_inputs_are_bounded(workspace):
     client, _, _ = workspace
     note = {"title": "  Launch note  ", "content": "MATCH (n) DELETE n; is literal note text."}
-    response = client.post("/api/sources", json=note)
+    response = client.post("/api/sources", json=note, headers={"Idempotency-Key": str(uuid4())})
     assert response.status_code == 201
     assert response.json()["title"] == "Launch note"
     assert response.json()["excerpt"] == note["content"]
@@ -118,24 +124,29 @@ def test_live_provider_failure_stays_an_error(workspace, monkeypatch):
     assert client.get("/api/memory").json()["items"] == []
 
 
-def test_database_recovery_retries_incomplete_startup_seed(tmp_path, monkeypatch):
+def test_database_recovery_rechecks_readiness_without_seeding(tmp_path, monkeypatch):
     from redis.exceptions import ConnectionError
 
     monkeypatch.delenv("RELAY_MODEL_API_KEY", raising=False)
     store = GraphStore(graph_name=f"relay_test_api_{uuid4().hex}")
-    original_seed = store.seed
+    prepare(store, tmp_path)
+    monkeypatch.setenv("RELAY_ACCESS_PASSWORD", TEST_PASSWORD)
+    original_health = store.health
     attempts = []
 
-    def seed_after_recovery():
+    def health_after_recovery():
         attempts.append(True)
         if len(attempts) == 1:
             raise ConnectionError("Database starting")
-        original_seed()
+        return original_health()
 
-    monkeypatch.setattr(store, "seed", seed_after_recovery)
+    monkeypatch.setattr(store, "health", health_after_recovery)
+    monkeypatch.setattr(store, "seed", lambda: pytest.fail("HTTP startup must not seed"))
     try:
         with TestClient(create_app(store, tmp_path / "checkpoints.sqlite")) as client:
+            assert client.get("/api/health").status_code == 503
             assert client.get("/api/health").status_code == 200
+            login(client)
             assert client.get("/api/bootstrap").json()["stats"]["entities"] == 24
             assert len(attempts) == 2
     finally:

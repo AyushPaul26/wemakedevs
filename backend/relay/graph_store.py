@@ -201,7 +201,7 @@ class GraphStore:
         citations = {sid for row in rows for source_ids in row[1] for sid in source_ids}
         return [list(path) for path in paths], citations
 
-    def simulate(self, origin_id, mitigation=False):
+    def simulate(self, origin_id, mitigation=False, *, access=None):
         self._ensure_writable()
         rows = self._query("MATCH (n:Entity {id:$id}) RETURN n.payload", id=origin_id)
         if not rows or (origin := json.loads(rows[0][0]))["kind"] != "service":
@@ -235,17 +235,15 @@ class GraphStore:
         citations.update(origin["source_ids"])
         affected = sorted({path[-1] for path in paths})
         scenario_id = f"ripple-{origin_id}-{'backup' if mitigation else 'baseline'}"
+        if access is not None:
+            identity = hashlib.sha256(_json([access.workspace_id, access.member_id]).encode()).hexdigest()
+            scenario_id = f'{scenario_id}-member-{identity}'
         source_ids = sorted(citations)
         summary = (f"{origin['label']} disruption exposes {len(affected)} dependent "
                    f"{'entity' if len(affected) == 1 else 'entities'}")
         if mitigation and excluded:
             summary += f", down from {len(baseline_affected)} under the documented backup assumption"
         summary += ". This is a hypothetical dependency count; authoritative graph facts are unchanged."
-        self._query(
-            "MERGE (s:Scenario {id:$id}) SET s.origin_id=$origin, s.mitigation=$mitigation "
-            "WITH s MATCH (n:Entity {id:$origin}) MERGE (s)-[:ABOUT]->(n)",
-            id=scenario_id, origin=origin_id, mitigation=mitigation,
-        )
         actions = [{
             "id": f"{scenario_id}-owner-review", "title": f"Validate {origin['label']} recovery",
             "description": ("Review source evidence and confirm recovery assumptions with the service owner. "
@@ -261,7 +259,49 @@ class GraphStore:
                 "status": "proposed", "investigation_id": scenario_id,
                 "source_ids": source_ids, "created_at": _now(),
             })
-        self.save_actions(actions)
+        if access is None:
+            # Preserve IDs and existing manual states for legacy/internal callers.
+            self._query(
+                "MERGE (s:Scenario {id:$id}) SET s.origin_id=$origin, s.mitigation=$mitigation "
+                "WITH s MATCH (n:Entity {id:$origin}) MERGE (s)-[:ABOUT]->(n)",
+                id=scenario_id, origin=origin_id, mitigation=mitigation,
+            )
+            self.save_actions(actions)
+        else:
+            # Publish requester scope with the first creation of every record.
+            # Member-scoped IDs cannot merge into an old shared Ripple proposal.
+            scope = {"requester_id": access.member_id, "workspace_id": access.workspace_id,
+                     "audience": [access.member_id], "classification": "general",
+                     "record_kind": "legacy_manual"}
+            specifications = []
+            for action in actions:
+                action.update(scope)
+                specifications.append({"id": action["id"], "properties": {
+                    **scope, "payload": _json(action), "status": "proposed",
+                    "created_at": action["created_at"], "investigation_id": scenario_id,
+                    "source_ids": source_ids}})
+            created = self._query(
+                "MATCH (member:Member {id:$member}),(origin:Entity {id:$origin}) "
+                "WHERE member.active=true AND member.workspace_id=$workspace "
+                "MERGE (scenario:Scenario {id:$id}) ON CREATE SET scenario += $scenario "
+                "MERGE (scenario)-[:ABOUT]->(origin) "
+                "FOREACH (spec IN $actions | MERGE (action:Action {id:spec.id}) "
+                "ON CREATE SET action += spec.properties MERGE (scenario)-[:PROPOSES]->(action)) "
+                "RETURN scenario.id",
+                id=scenario_id, origin=origin_id, member=access.member_id,
+                workspace=access.workspace_id, actions=specifications,
+                scenario={**scope, "origin_id": origin_id, "mitigation": mitigation,
+                          "source_ids": source_ids, "created_at": _now()},
+            )
+            if not created:
+                from .access import AccessError
+                raise AccessError("Authentication required", 401)
+            # Citations add provenance after records already have their private
+            # audience. Payload/source_ids constrain reads in the same creation.
+            for action in actions:
+                self._query(
+                    "MATCH (action:Action {id:$id}),(source:Source) WHERE source.id IN $sources "
+                    "MERGE (action)-[:CITES]->(source)", id=action["id"], sources=source_ids)
         stored_actions = [self._get_action(action["id"]) for action in actions]
         return {"scenario_id": scenario_id, "origin_id": origin_id, "mitigation": mitigation,
                 "affected_ids": affected, "paths": paths, "summary": summary, "source_ids": source_ids,
