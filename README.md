@@ -2,6 +2,73 @@
 
 Relay connects company knowledge, exact document evidence, and approval-controlled agent work in FalkorDB. Ask about the fictional Meridian company's Atlas launch, explore dependency changes with **Ripple**, or run an invoice review: company research continues while Finance waits for its auditor, then approved tools compare rows and produce a report and an internal exception case. LangGraph coordinates execution; the graph remains the authority for permissions, state, receipts, and memory.
 
+## Graph Hacks submission
+
+Submission tracks: **Company Brain** (lead), **Agents That Act on Connected Data**, and **Agent Memory and Coordination**.
+
+| Track | What Relay demonstrates |
+| --- | --- |
+| Company Brain | Connected ownership, dependencies, source evidence, company questions, and remembered investigations. |
+| Agents That Act on Connected Data | Graph-based dependency analysis and an invoice workflow that produces reports and an internal case after scoped human approval. |
+| Agent Memory and Coordination | Researcher, Planner, and Archivist stages; persisted workflow state, execution receipts, and reuse of unchanged work after a plan revision. |
+
+See the [submission summary and judging guide](docs/submission.md) for entry text, demo chapters, access instructions, and the final video-link checklist. The bundled Meridian company and sample documents are fictional.
+
+## Graph data model
+
+Company objects use the `Entity` label with a `kind` such as `person`, `team`, `project`, `service`, `document`, `decision`, or `incident`. Workflow and account records use separate labels so execution dependencies do not become company-map dependencies.
+
+| Part of the model | Nodes and relationships used by the application |
+| --- | --- |
+| Company context | `Entity -DEPENDS_ON-> Entity`, `Entity -OWNED_BY-> Entity`, and evidence-backed `CAN_USE` / `BACKUP_FOR` relationships. |
+| Exact document evidence | `Source -HAS_VERSION-> SourceVersion -HAS_CHUNK-> SourceChunk`; chunks identify a page, paragraph, or CSV row. |
+| Review plans | `WorkflowRun -HAS_PLAN-> WorkflowPlan -HAS_STEP-> WorkflowStep`; steps use `DEPENDS_ON` and `USES_SOURCE` relationships. |
+| Human approval | `WorkflowStep -REQUIRES_APPROVAL-> Approval`; approvals connect to members through `ASSIGNED_TO` / `DECIDED_BY` and to their scope through `AUTHORIZES` / `PERMITS_SOURCE`. |
+| Execution and reports | `WorkflowStep -EXECUTED_AS-> Execution -PRODUCED-> Artifact`; receipts and artifacts can cite exact versions and chunks. |
+| Case history | `Execution -REVISED-> CaseRevision -VERSION_OF-> ExceptionCase`; a correction adds a revision to the existing case. |
+| Investigation memory | `Investigation` records hold the question, result, and optional `run_id`; evidence uses `CITES`, `CITES_VERSION`, and `CITES_CHUNK`, and proposed manual actions use `PROPOSES`. |
+
+`DEPENDS_ON` points from a dependent to its prerequisite. Ripple finds paths ending at the disrupted service, then reverses those paths for the displayed impact explanation. A workflow step similarly points to the work that must finish first.
+
+FalkorDB stores the company graph, access policies, source metadata and chunks, approvals, workflow state, receipts, cases, and memory. Original files and downloadable reports live in private file storage with hashes and references in the graph. SQLite stores LangGraph checkpoints. Removing FalkorDB leaves no replacement company store or permission engine; graph-dependent API requests fail rather than silently using fixture data. Guided demo mode still queries FalkorDB and only changes how explanatory text is composed.
+
+The [extended schema and migration design](docs/relay-workflows-database.md) describes the broader model and storage invariants. [Source/version storage](backend/relay/source_store.py), [workflow storage](backend/relay/workflow_store.py), and [access-aware company memory](backend/relay/company.py) show the implemented paths.
+
+## Cypher and graph algorithms
+
+These are actual parameterized queries from [Ripple's implementation](backend/relay/graph_store.py), formatted for readability. For the fictional payment scenario, `$origin` is `payment-gateway` and the baseline `$excluded` list is empty.
+
+Find every dependent path to the disrupted service, including the source references on its edges:
+
+```cypher
+MATCH p=(dependent:Entity)-[:DEPENDS_ON*1..]->(origin:Entity {id:$origin})
+WHERE dependent.id <> $origin
+  AND all(edge IN relationships(p) WHERE NOT (edge.id IN $excluded))
+RETURN [node IN nodes(p) | node.id],
+       [edge IN relationships(p) | edge.source_ids]
+ORDER BY dependent.id
+```
+
+Find documented backup routes before considering a hypothetical mitigation:
+
+```cypher
+MATCH (consumer:Entity)-[dep:DEPENDS_ON]->(origin:Entity {id:$origin}),
+      (consumer)-[usable:CAN_USE]->(backup:Entity)-[fallback:BACKUP_FOR]->(origin)
+WHERE backup.status='healthy'
+RETURN dep.id, consumer.payload, backup.payload,
+       usable.source_ids, fallback.source_ids
+```
+
+The application also checks whether a backup is itself exposed. It then reruns the dependency query with supported edges excluded for the simulation, without changing the stored company relationships. The sample payment scenario changes the exposed-dependent count from three to one; this is not an outage probability or a live failover.
+
+Other central graph operations are available directly in the source:
+
+| Operation | Implementation |
+| --- | --- |
+| Require completed prerequisites, a current plan, exact approved source versions, an active reviewer, and permitted tools before claiming or publishing work | `WorkflowStore._execution_guard`, `claim_step`, and `commit_step` in [workflow_store.py](backend/relay/workflow_store.py). |
+| Mark dependent work stale after evidence changes by traversing downstream `DEPENDS_ON*0..` paths | `WorkflowStore.invalidate_source` in [workflow_store.py](backend/relay/workflow_store.py). |
+| Save and retrieve member-visible investigations and evidence references | `CompanyService.save_investigation` and `list_memories` in [company.py](backend/relay/company.py). |
+
 ## Run locally
 
 Requirements: Docker with Compose v2, Python 3.12+, [uv](https://docs.astral.sh/uv/), Node.js 22.12+ (Node 24 is supported), npm, Bash 4.3+, and curl. Docker must be running. The development services use loopback ports 6379, 8000, and 5173.
@@ -72,7 +139,7 @@ The first request validates the backend's real database query. The second also v
 
 With Relay running and system Chromium available, `node scripts/browser-check.mjs` checks the existing company features and `node scripts/browser-workflow-live.mjs` checks the full two-member approval workflow against the real API. Supply account credentials through a private mode-0600 file using `RELAY_BROWSER_CREDENTIALS_FILE`; see [the workflow guide](docs/workflow-demo.md). Reports and screenshots stay under ignored `.data/`. Set `RELAY_BROWSER_EXECUTABLE` for a different Chromium path. These checks create labeled fictional records in the sample workspace. `node scripts/record-demo.mjs` additionally uses system ffmpeg to capture the workflow in `.data/relay-demo.mp4`.
 
-Current verification evidence and limitations are in [docs/verification.md](docs/verification.md). **Track 3 — Company Brain** is the recommended lead submission; the demo also shows graph-based actions for Track 1 and persistent memory/agent handoffs for Track 2.
+Current verification evidence and limitations are in [docs/verification.md](docs/verification.md). The recorded results distinguish live-model runs, Guided demo runs, and deployment-specific checks.
 
 ## Database persistence and restarts
 
@@ -108,3 +175,9 @@ export npm_config_cache=/tmp/relay-npm-cache
 - The workspace uses fictional sample data. GraphRAG-SDK and Graphify remain optional reuse sources; this release does not claim automatic semantic link extraction.
 
 Dependency attribution and license distinctions are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The implementation and reuse boundaries are documented in [the reuse assessment](docs/relay-reuse-plan.md).
+
+## AI assistance and participant contribution
+
+OpenAI Codex and ChatGPT were used for planning, code generation, debugging, test generation and execution, documentation, and deployment assistance. Human direction covered the product concept, company-brain and Finance-approval requirements, feature priorities, provider and hosting choices, and feedback on the demo workflow.
+
+Verification results and their scope are recorded in [the verification record](docs/verification.md). The participant remains responsible for explaining the submitted graph model, queries, architecture, and technical decisions.
