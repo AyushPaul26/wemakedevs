@@ -12,7 +12,7 @@ Submission tracks: **Company Brain** (lead), **Agents That Act on Connected Data
 | Agents That Act on Connected Data | Graph-based dependency analysis and an invoice workflow that produces reports and an internal case after scoped human approval. |
 | Agent Memory and Coordination | Researcher, Planner, and Archivist stages; persisted workflow state, execution receipts, and reuse of unchanged work after a plan revision. |
 
-[Watch the demo video](https://drive.google.com/file/d/1JGadPKCeSPHTBMkJ4H7ncCBbDrHnAsnO/view?usp=sharing). See the [submission summary and judging guide](docs/submission.md) for entry text, demo chapters, access instructions, and the final submission checklist. The bundled Meridian company and sample documents are fictional.
+[Watch the demo video](https://www.youtube.com/watch?v=bvLC4aGHssA). See the [submission summary and judging guide](docs/submission.md) for entry text, demo chapters, access instructions, and the final submission checklist. The bundled Meridian company and sample documents are fictional.
 
 ## Graph data model
 
