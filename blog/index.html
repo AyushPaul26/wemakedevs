@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#faf9fd" />
+    <meta
+      name="description"
+      content="Inside Relay: building a company brain with FalkorDB, connected evidence, and agents that wait for the right human approval. A Graph Hacks build story by Ayush Paul."
+    />
+    <meta property="og:type" content="article" />
+    <meta
+      property="og:title"
+      content="A company brain. With a path to action. — Relay"
+    />
+    <meta
+      property="og:description"
+      content="The story behind Relay: connected company knowledge, a real graph, and a carefully placed human yes."
+    />
+    <meta property="og:image" content="/assets/social-cover.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="author" content="Ayush Paul" />
+    <title>Building Relay — A company brain with a path to action</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/sora-latin-600-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/dm-sans-latin-400-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <script type="module" src="/assets/main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#story">Skip to the article</a>
+    <div class="reading-progress" aria-hidden="true">
+      <span id="reading-progress"></span>
+    </div>
+    <header class="site-header shell">
+      <a class="brand" href="#top" aria-label="Relay. The build journal — home"
+        ><img src="/favicon.svg" width="30" height="30" alt="" /><span
+          class="wordmark"
+          >relay.</span
+        ><span class="brand-note">THE BUILD JOURNAL</span></a
+      >
+      <nav class="header-nav" aria-label="Main navigation">
+        <a href="#story">The story</a><a href="#graph">Inside the graph</a
+        ><a href="#lessons">Lessons</a>
+      </nav>
+      <a
+        class="header-cta"
+        href="https://www.youtube.com/watch?v=bvLC4aGHssA"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Watch the demo
+        <span aria-hidden="true"
+          ><span class="north-east" aria-hidden="true"></span></span
+      ></a>
+    </header>
+
+    <main id="top">
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="tiny-dot"></span> GRAPH HACKS 2026
+            <span class="eyebrow-divider">/</span> COMPANY BRAIN
+          </p>
+          <h1 id="hero-title">
+            A company brain.<br />With a path<br />to
+            <span class="word-action"
+              >action<svg viewBox="0 0 250 15" aria-hidden="true">
+                <path d="M3 11Q103 0 245 7" /></svg></span
+            >.
+          </h1>
+          <p class="hero-deck">
+            Your company already has the answers.<br class="desktop-break" />
+            The hard part is connecting them—and knowing<br
+              class="desktop-break"
+            />
+            what should happen next.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#story"
+              >Read the build story <span aria-hidden="true">↓</span></a
+            ><a
+              class="text-link"
+              href="https://github.com/AyushPaul26/wemakedevs"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Explore the code
+              <span aria-hidden="true"
+                ><span class="north-east" aria-hidden="true"></span></span
+            ></a>
+          </div>
+          <div class="byline">
+            <span class="avatar" aria-hidden="true">AP</span
+            ><span
+              ><strong>Ayush Paul</strong
+              ><span
+                >18 October 2026 <span aria-hidden="true">·</span>
+                <span id="reading-time">6 min read</span></span
+              ></span
+            >
+          </div>
+        </div>
+        <div
+          class="hero-art"
+          aria-label="Illustration of company context connecting to an approved action"
+        >
+          <div class="art-label">
+            <span class="tiny-dot"></span> A LITTLE CONTEXT GOES A LONG WAY
+          </div>
+          <svg
+            class="hero-network"
+            viewBox="0 0 490 440"
+            role="img"
+            aria-labelledby="network-title network-desc"
+          >
+            <title id="network-title">
+              From connected knowledge to approved work
+            </title>
+            <desc id="network-desc">
+              Company documents, project context, and a Finance reviewer connect
+              through Relay. An approved workflow produces a report with an
+              execution receipt.
+            </desc>
+            <defs>
+              <pattern
+                id="dots"
+                width="22"
+                height="22"
+                patternUnits="userSpaceOnUse"
+              >
+                <circle cx="1" cy="1" r="1" fill="#d6cdeb" />
+              </pattern>
+            </defs>
+            <rect width="490" height="440" fill="url(#dots)" opacity=".7" />
+            <g
+              class="network-lines"
+              fill="none"
+              stroke="#c4b7e5"
+              stroke-width="1.5"
+            >
+              <path d="M123 108C123 185 212 128 244 211" />
+              <path d="M375 120C375 173 289 153 257 211" />
+              <path d="M95 293C161 293 163 254 222 239" />
+              <path d="M265 249C295 303 326 311 349 350" />
+            </g>
+            <g class="flow-line" fill="none" stroke="#8d75cf" stroke-width="2">
+              <path d="M123 108C123 185 212 128 244 211" />
+              <path d="M265 249C295 303 326 311 349 350" />
+            </g>
+            <g class="svg-card">
+              <rect x="35" y="45" width="173" height="70" rx="13" />
+              <rect
+                class="svg-icon-bg"
+                x="49"
+                y="62"
+                width="32"
+                height="32"
+                rx="9"
+              />
+              <path
+                d="M59 70h10v15H59zm3 4h4m-4 4h4"
+                fill="none"
+                stroke="#6b50bc"
+                stroke-width="1.5"
+              />
+              <text x="92" y="76" class="svg-title">The evidence</text>
+              <text x="92" y="94" class="svg-small">
+                Documents &amp; versions
+              </text>
+            </g>
+            <g class="svg-card">
+              <rect x="294" y="64" width="169" height="70" rx="13" />
+              <rect
+                class="svg-icon-bg"
+                x="307"
+                y="81"
+                width="32"
+                height="32"
+                rx="9"
+              />
+              <path
+                d="m316 97 6-6 6 6-6 6zm6-6v-4"
+                fill="none"
+                stroke="#6b50bc"
+                stroke-width="1.5"
+              />
+              <text x="350" y="94" class="svg-title">The context</text>
+              <text x="350" y="112" class="svg-small">
+                People &amp; dependencies
+              </text>
+            </g>
+            <circle cx="245" cy="230" r="73" fill="#e8e0f7" opacity=".65" />
+            <circle cx="245" cy="230" r="58" fill="#dfd4f4" opacity=".7" />
+            <rect
+              x="201"
+              y="186"
+              width="88"
+              height="88"
+              rx="25"
+              fill="#6246ce"
+              transform="rotate(-8 245 230)"
+            />
+            <path
+              d="M232 247v-33m5 28 23-22"
+              fill="none"
+              stroke="#fff"
+              stroke-width="2.5"
+            />
+            <g fill="#6246ce" stroke="#fff" stroke-width="2.5">
+              <circle cx="232" cy="249" r="7" />
+              <circle cx="262" cy="217" r="7" />
+            </g>
+            <g class="svg-card">
+              <rect x="19" y="289" width="177" height="70" rx="13" />
+              <circle cx="48" cy="323" r="16" fill="#f1eafa" />
+              <path
+                d="M42 328c0-6 12-6 12 0m-3-12a3 3 0 1 1-6 0 3 3 0 0 1 6 0"
+                fill="none"
+                stroke="#6b50bc"
+                stroke-width="1.5"
+              />
+              <text x="73" y="320" class="svg-title">The human yes</text>
+              <text x="73" y="339" class="svg-small">
+                Scoped Finance approval
+              </text>
+            </g>
+            <g class="svg-card output-card">
+              <rect x="267" y="341" width="202" height="72" rx="13" />
+              <circle cx="295" cy="376" r="15" fill="#dceee4" />
+              <path
+                d="m288 376 5 5 9-10"
+                fill="none"
+                stroke="#24674f"
+                stroke-width="2"
+              />
+              <text x="320" y="372" class="svg-title">
+                Work, with a receipt.
+              </text>
+              <text x="320" y="392" class="svg-small">
+                Report + internal case
+              </text>
+            </g>
+            <text
+              x="297"
+              y="282"
+              class="svg-edge-label"
+              transform="rotate(38 297 282)"
+            >
+              APPROVED PATH
+            </text>
+          </svg>
+          <div class="art-footer">
+            <span>CONNECTED KNOWLEDGE → APPROVED ACTION</span
+            ><span class="art-index" aria-hidden="true"
+              ><span class="north-east" aria-hidden="true"></span
+            ></span>
+          </div>
+        </div>
+      </section>
+
+      <div class="context-strip">
+        <div class="shell">
+          <span>BUILT FOR THE SPACE BETWEEN</span>
+          <p>
+            “Who knows this?” <span aria-hidden="true">↔</span> “What happens
+            next?”
+          </p>
+          <span class="context-tech"
+            >FalkorDB <i aria-hidden="true">+</i> LangGraph</span
+          >
+        </div>
+      </div>
+
+      <div class="article-layout shell">
+        <aside class="article-aside">
+          <nav aria-label="Article sections">
+            <p class="toc-label">IN THIS STORY</p>
+            <a href="#story" class="toc-link active" aria-current="location"
+              >The missing connection</a
+            ><a href="#graph" class="toc-link">A graph that does the work</a
+            ><a href="#workflow" class="toc-link">The right human yes</a
+            ><a href="#memory" class="toc-link">When the evidence changes</a
+            ><a href="#lessons" class="toc-link">What the build taught us</a
+            ><a href="#watch" class="toc-link">See Relay in action</a>
+          </nav>
+          <div class="aside-note">
+            <span class="aside-star" aria-hidden="true"
+              ><svg viewBox="0 0 32 32" width="32" height="32">
+                <path
+                  d="M16 2v28M2 16h28M6 6l20 20M6 26 26 6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /></svg
+            ></span>
+            <p>
+              A build story about<br />context, trust, and<br />the work in
+              between.
+            </p>
+          </div>
+          <button class="copy-link" id="copy-link" type="button" hidden>
+            Copy article link
+            <span aria-hidden="true"
+              ><span class="north-east" aria-hidden="true"></span
+            ></span>
+          </button>
+          <p class="copy-status" id="copy-status" role="status"></p>
+          <label class="copy-fallback" id="copy-fallback" hidden
+            >Copy this address<input id="article-url" type="text" readonly
+          /></label>
+        </aside>
+
+        <article class="article-body">
+          <section id="story" class="story-section">
+            <p class="section-kicker">THE PROBLEM</p>
+            <h2>The answer is somewhere.<br />That’s the problem.</h2>
+            <p class="lead">
+              A launch is approaching. A payment service has a problem. Someone
+              asks a simple question:
+              <strong>“What does this put at risk—and who can help?”</strong>
+            </p>
+            <p>
+              The answer rarely lives in one document. It lives between a
+              service, its owner, the project that depends on it, and a decision
+              made a week ago. Finding each piece is only half the work. Someone
+              still has to connect them.
+            </p>
+            <p>
+              Relay was built around that gap. It is a company brain for
+              employees, project managers, operations teams, and Finance teams:
+              a place to find evidence, understand relationships, and turn that
+              context into carefully approved work.
+            </p>
+            <div class="pull-quote">
+              <span aria-hidden="true">“</span>
+              <p>
+                A useful company brain should remember
+                <em>how things connect</em>—and carry those connections into the
+                next task.
+              </p>
+            </div>
+            <p>
+              The demo takes place inside Meridian, a fictional company
+              preparing its Atlas launch. That gives the project a concrete
+              world to work with: people, services, decisions, documents, and a
+              Finance review that needs a real approval boundary.
+            </p>
+          </section>
+
+          <figure class="product-figure">
+            <div class="figure-toolbar">
+              <span class="window-dots" aria-hidden="true"
+                ><i></i><i></i><i></i></span
+              ><span>RELAY / THE MERIDIAN WORKSPACE</span
+              ><a
+                href="/assets/relay-ripple.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Expand the full Relay application screenshot"
+                >Expand
+                <span aria-hidden="true"
+                  ><span class="north-east" aria-hidden="true"></span></span
+              ></a>
+            </div>
+            <a
+              class="screenshot-link"
+              href="/assets/relay-ripple.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Inspect the full application screenshot"
+              ><img
+                src="/assets/relay-ripple.png"
+                width="1512"
+                height="1468"
+                alt="Actual Relay application with a company dependency map, source-backed questions, and Ripple showing three exposed dependents reduced to one under a backup assumption."
+                loading="lazy"
+            /></a>
+            <figcaption>
+              <span class="caption-index">IN THE PRODUCT</span> The company map,
+              source evidence, and Ripple analysis share the same workspace.
+              Screenshot from the Guided demo.
+            </figcaption>
+          </figure>
+
+          <section id="graph" class="story-section">
+            <p class="section-kicker">THE CONNECTED CORE</p>
+            <h2>The graph is where<br />the reasoning gets its footing.</h2>
+            <p>
+              FalkorDB stores the relationships Relay depends on. A project can
+              depend on a service. A service can have an owner. A finding can
+              cite a particular document version. Those connections are
+              available to queries, not just drawn on the screen.
+            </p>
+            <p>
+              Ripple makes this visible. Starting with the payment gateway, a
+              Cypher query follows dependency paths to find the work exposed to
+              an outage. A second query looks for documented backup routes. Try
+              the small illustration below.
+            </p>
+
+            <div class="ripple-demo" id="ripple-demo" data-scenario="baseline">
+              <div class="demo-topline">
+                <div>
+                  <span class="demo-eyebrow">EXPLORE THE IDEA</span>
+                  <h3>One change. A ripple of consequences.</h3>
+                </div>
+                <span class="demo-tag">Illustrative demo</span>
+              </div>
+              <div
+                class="scenario-controls"
+                hidden
+                aria-label="Choose a dependency scenario"
+              >
+                <button
+                  type="button"
+                  data-scenario="baseline"
+                  aria-pressed="true"
+                >
+                  Payment outage</button
+                ><button
+                  type="button"
+                  data-scenario="backup"
+                  aria-pressed="false"
+                >
+                  Assume backup is ready
+                  <span aria-hidden="true"
+                    ><span class="north-east" aria-hidden="true"></span
+                  ></span>
+                </button>
+              </div>
+              <noscript
+                ><p class="noscript-note">
+                  The illustration shows the baseline. In the backup scenario,
+                  Checkout and Atlas are no longer exposed; Billing
+                  reconciliation remains exposed.
+                </p></noscript
+              >
+              <svg
+                class="ripple-graph"
+                viewBox="0 0 660 300"
+                role="img"
+                aria-labelledby="ripple-title ripple-desc"
+              >
+                <title id="ripple-title">
+                  Payment gateway dependency graph
+                </title>
+                <desc id="ripple-desc">
+                  Checkout depends on Payment gateway. Atlas launch depends on
+                  Checkout. Billing reconciliation also depends on Payment
+                  gateway. Checkout can use Backup provider, which backs up
+                  Payment gateway. Dependency arrows point toward prerequisites.
+                </desc>
+                <defs>
+                  <marker
+                    id="arrow-clay"
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M0 0 10 5 0 10z" fill="#b34735" />
+                  </marker>
+                  <marker
+                    id="arrow-green"
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M0 0 10 5 0 10z" fill="#24674f" />
+                  </marker>
+                </defs>
+                <g fill="none" stroke-width="1.7">
+                  <path
+                    class="edge-dependency edge-checkout"
+                    d="M270 95H205"
+                    marker-end="url(#arrow-clay)"
+                  />
+                  <path
+                    class="edge-dependency edge-atlas"
+                    d="M490 95H440"
+                    marker-end="url(#arrow-clay)"
+                  />
+                  <path
+                    class="edge-dependency"
+                    d="M520 277V292H235Q220 292 220 276V117H205"
+                    marker-end="url(#arrow-clay)"
+                  />
+                  <path
+                    class="edge-backup"
+                    d="M350 128V211"
+                    marker-end="url(#arrow-green)"
+                  />
+                  <path
+                    class="edge-backup"
+                    d="M270 244H230Q190 244 150 125"
+                    marker-end="url(#arrow-green)"
+                  />
+                </g>
+                <g class="ripple-node node-origin">
+                  <rect x="20" y="62" width="185" height="66" rx="11" />
+                  <circle cx="40" cy="82" r="3" />
+                  <text x="51" y="86" class="node-kind">
+                    SERVICE / DISRUPTED
+                  </text>
+                  <text x="36" y="111" class="node-name">Payment gateway</text>
+                </g>
+                <g class="ripple-node node-checkout">
+                  <rect x="270" y="62" width="170" height="66" rx="11" />
+                  <circle cx="289" cy="82" r="3" />
+                  <text x="300" y="86" class="node-kind">SERVICE</text>
+                  <text x="287" y="111" class="node-name">Checkout</text>
+                </g>
+                <g class="ripple-node node-atlas">
+                  <rect x="490" y="62" width="150" height="66" rx="11" />
+                  <circle cx="509" cy="82" r="3" />
+                  <text x="520" y="86" class="node-kind">PROJECT</text>
+                  <text x="507" y="111" class="node-name">Atlas launch</text>
+                </g>
+                <g class="ripple-node node-backup">
+                  <rect x="270" y="211" width="170" height="66" rx="11" />
+                  <circle cx="289" cy="231" r="3" />
+                  <text x="300" y="235" class="node-kind">BACKUP</text>
+                  <text x="287" y="260" class="node-name">Backup provider</text>
+                </g>
+                <g class="ripple-node node-billing">
+                  <rect x="490" y="211" width="150" height="66" rx="11" />
+                  <circle cx="509" cy="231" r="3" />
+                  <text x="520" y="235" class="node-kind">SERVICE</text>
+                  <text x="503" y="256" class="node-name node-name-small">
+                    Billing reconciliation
+                  </text>
+                </g>
+                <text x="311" y="171" class="edge-label">CAN USE</text>
+                <text x="160" y="193" class="edge-label">BACKUP FOR</text>
+                <text x="28" y="30" class="edge-label">
+                  ARROWS FOLLOW STORED RELATIONSHIPS
+                </text>
+              </svg>
+              <div
+                class="ripple-result"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <div class="result-number">
+                  <strong id="exposed-count">3</strong
+                  ><span>exposed<br />dependents</span>
+                </div>
+                <p id="scenario-result">
+                  Checkout, Atlas launch, and Billing reconciliation depend on
+                  the disrupted payment gateway.
+                </p>
+              </div>
+              <p class="demo-footnote">
+                A local illustration of the sample graph, not a live query or
+                failover. The backup assumption changes the simulated path; it
+                does not change company facts.
+              </p>
+            </div>
+
+            <p>
+              With the documented backup assumption, Checkout and Atlas are no
+              longer exposed through that route. Billing reconciliation still
+              is. The count changes from three to one. That is a dependency
+              count—not a prediction of outage probability.
+            </p>
+            <details class="query-details">
+              <summary>
+                See the Cypher behind the dependency walk
+                <span aria-hidden="true">+</span>
+              </summary>
+              <div class="code-panel">
+                <div class="code-caption">
+                  FROM THE ACTUAL IMPLEMENTATION
+                  <a
+                    href="https://github.com/AyushPaul26/wemakedevs/blob/work/backend/relay/graph_store.py"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View source
+                    <span class="north-east" aria-hidden="true"></span
+                  ></a>
+                </div>
+                <pre
+                  tabindex="0"
+                  aria-label="Cypher dependency query"
+                ><code><span class="code-keyword">MATCH</span> p=(dependent:Entity)-[:DEPENDS_ON*1..]-&gt;
+        (origin:Entity {id:$origin})
+<span class="code-keyword">WHERE</span> dependent.id &lt;&gt; $origin
+  AND all(edge IN relationships(p)
+    WHERE NOT (edge.id IN $excluded))
+<span class="code-keyword">RETURN</span> [node IN nodes(p) | node.id],
+       [edge IN relationships(p) | edge.source_ids]
+<span class="code-keyword">ORDER BY</span> dependent.id</code></pre>
+                <p>
+                  <code>$origin</code> is <code>payment-gateway</code>. The
+                  baseline <code>$excluded</code> list is empty.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <section id="workflow" class="story-section">
+            <p class="section-kicker">FROM KNOWING TO DOING</p>
+            <h2>Put the human yes<br />where it actually matters.</h2>
+            <p>
+              Finding an answer is useful. An invoice review asks a harder
+              question: can the system use the right evidence, respect who may
+              approve it, and leave a record of what happened?
+            </p>
+            <p>
+              In Relay, company research can continue while the Finance branch
+              waits. A separate auditor reviews the exact document versions,
+              permitted tools, and intended audience. That approval is scoped to
+              the work, rather than granting the agent permanent access to
+              everything.
+            </p>
+            <div class="approval-story">
+              <div class="approval-heading">
+                <span class="branch-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 28 28" width="28" height="28">
+                    <path
+                      d="M14 23V12M6 5v5q0 3 3 3h10q3 0 3-3V5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                    /></svg
+                ></span>
+                <div>
+                  <h3>One request. Two paths.</h3>
+                  <p>Company context moves. Finance waits for permission.</p>
+                </div>
+              </div>
+              <div class="approval-branches">
+                <div class="branch">
+                  <span class="branch-label">COMPANY CONTEXT</span>
+                  <div class="step done">
+                    <span aria-hidden="true">✓</span>
+                    <div>
+                      <strong>Research the company</strong
+                      ><small>Read permitted evidence</small>
+                    </div>
+                  </div>
+                  <div class="step done">
+                    <span aria-hidden="true">✓</span>
+                    <div>
+                      <strong>Keep the findings</strong
+                      ><small>Save their source references</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="branch">
+                  <span class="branch-label">FINANCE REVIEW</span>
+                  <div class="step approval">
+                    <span aria-hidden="true">◎</span>
+                    <div>
+                      <strong>Wait for the auditor</strong
+                      ><small>Exact versions. Explicit scope.</small>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <span aria-hidden="true">→</span>
+                    <div>
+                      <strong>Execute approved work</strong
+                      ><small>Compare → report → internal case</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="approval-caption">
+                <span class="tiny-dot"></span> EVERY EXECUTED STEP LEAVES A
+                RECEIPT
+              </div>
+            </div>
+            <p>
+              After approval, tools compare invoice and purchase-order rows,
+              create HTML and CSV reports, and update an internal exception
+              case. Optional report and case approval gates give the requester
+              another review point. The workflow does not send payments or
+              messages to external systems.
+            </p>
+            <p>
+              LangGraph coordinates the stages. FalkorDB holds the workflow
+              relationships and checks the prerequisites, current plan, approved
+              source versions, and permissions before work can be claimed or its
+              results published.
+            </p>
+          </section>
+
+          <section id="memory" class="story-section">
+            <p class="section-kicker">MEMORY THAT SURVIVES A CORRECTION</p>
+            <h2>The document changed.<br />The history shouldn’t disappear.</h2>
+            <p>
+              A corrected invoice should not erase the first review. It should
+              explain why the next review is different.
+            </p>
+            <p>
+              Relay keeps earlier evidence versions and marks affected
+              downstream work stale. Changed Finance evidence needs fresh
+              approval; unchanged completed work can be reused. When the
+              discrepancy is resolved, the existing internal case gains a new
+              revision instead of becoming a disconnected second case.
+            </p>
+            <div class="revision-strip">
+              <div>
+                <span class="revision-version">VERSION 1</span
+                ><strong>A discrepancy is found</strong
+                ><span>Review → report → open case</span>
+              </div>
+              <span class="revision-arrow" aria-hidden="true">→</span>
+              <div>
+                <span class="revision-version">VERSION 2</span
+                ><strong>The correction is reviewed</strong
+                ><span>Fresh approval → same case resolved</span>
+              </div>
+            </div>
+            <p>
+              This is also why memory needs evidence. Company investigations
+              retain source references, so a user can return to a finding and
+              inspect what supported it. A remembered answer is more useful when
+              its context survives with it.
+            </p>
+          </section>
+
+          <section id="lessons" class="story-section">
+            <p class="section-kicker">NOTES FROM THE BUILD</p>
+            <h2>Three lessons worth keeping.</h2>
+            <div class="lesson">
+              <span class="lesson-symbol" aria-hidden="true"
+                ><span class="north-east" aria-hidden="true"></span
+              ></span>
+              <div>
+                <h3>Make connections do real work.</h3>
+                <p>
+                  A graph earns its place when relationships change a result or
+                  determine whether work can proceed. In Relay, the same graph
+                  supports dependency analysis, evidence tracing, and execution
+                  checks. Without FalkorDB, those core workflows cannot
+                  function.
+                </p>
+              </div>
+            </div>
+            <div class="lesson">
+              <span class="lesson-symbol" aria-hidden="true">◎</span>
+              <div>
+                <h3>An approval belongs to a version.</h3>
+                <p>
+                  Approving a filename is not enough when its contents can
+                  change. Binding approval to exact source versions makes the
+                  boundary meaningful. New evidence requires a new decision; an
+                  old “yes” should not silently authorize it.
+                </p>
+              </div>
+            </div>
+            <div class="lesson">
+              <span class="lesson-symbol" aria-hidden="true">↺</span>
+              <div>
+                <h3>Recovery is part of the workflow.</h3>
+                <p>
+                  A useful system must handle corrections, not just the first
+                  successful run. Keeping receipts, marking dependent work
+                  stale, and reusing valid results makes a revision
+                  understandable instead of making everyone start from zero.
+                </p>
+              </div>
+            </div>
+            <div class="scope-note">
+              <h3>Where the prototype stands</h3>
+              <p>
+                Relay currently supports one workspace and a fixed
+                invoice-review workflow. Guided demo mode uses real graph
+                queries and tools, with deterministic explanation text; optional
+                live-model runs are identified separately. Follow-up answers may
+                omit report citations or overstate conclusions, so the generated
+                reports and execution records remain important to inspect.
+              </p>
+              <a
+                href="https://github.com/AyushPaul26/wemakedevs/blob/work/docs/verification.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Read the verification record
+                <span aria-hidden="true"
+                  ><span class="north-east" aria-hidden="true"></span></span
+              ></a>
+            </div>
+            <p>
+              For a next iteration, the priorities would be stronger evidence
+              citation in follow-up answers, durable hosted storage, and
+              carefully adding workflow types. Each new action needs the same
+              clear boundary: which evidence, whose permission, and what record
+              remains afterward.
+            </p>
+          </section>
+
+          <section id="watch" class="story-section watch-section">
+            <p class="section-kicker">SEE IT COME TOGETHER</p>
+            <h2>From the first question<br />to the final receipt.</h2>
+            <p>
+              The full walkthrough follows the company graph, Ripple, document
+              evidence, Finance approvals, and a corrected invoice through to
+              the existing case being resolved.
+            </p>
+            <div class="video-frame" id="video-frame">
+              <div class="video-cover">
+                <span class="video-logo">relay.</span>
+                <p>A company brain.<br /><em>In motion.</em></p>
+                <button
+                  type="button"
+                  class="video-play"
+                  id="play-video"
+                  aria-label="Play the walkthrough: Relay demo video"
+                  hidden
+                >
+                  <span aria-hidden="true">▶</span
+                  ><span>Play the walkthrough</span></button
+                ><a
+                  class="video-direct"
+                  href="https://www.youtube.com/watch?v=bvLC4aGHssA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Watch on YouTube
+                  <span aria-hidden="true"
+                    ><span
+                      class="north-east"
+                      aria-hidden="true"
+                    ></span></span></a
+                ><span class="video-duration">16:27 · FULL PRODUCT DEMO</span>
+              </div>
+            </div>
+            <p class="video-fallback">
+              Video not loading?
+              <a
+                href="https://www.youtube.com/watch?v=bvLC4aGHssA"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Open it on YouTube
+                <span class="north-east" aria-hidden="true"></span
+              ></a>
+            </p>
+            <div class="closing-links">
+              <a
+                class="button button-primary"
+                href="https://relay-company-brain.onrender.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Open Relay
+                <span aria-hidden="true"
+                  ><span class="north-east" aria-hidden="true"></span></span></a
+              ><a
+                class="button button-secondary"
+                href="https://github.com/AyushPaul26/wemakedevs"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Read the source
+                <span aria-hidden="true"
+                  ><span class="north-east" aria-hidden="true"></span></span
+              ></a>
+            </div>
+            <p class="live-note">
+              The app requires a demo account and may need a moment to wake up
+              on free hosting. Complete local setup instructions are in the
+              repository.
+            </p>
+          </section>
+
+          <div class="author-card">
+            <span class="avatar avatar-large" aria-hidden="true">AP</span>
+            <div>
+              <span class="section-kicker">BUILT FOR GRAPH HACKS</span>
+              <h3>Ayush Paul</h3>
+              <p>
+                Relay · Company Brain, Agents That Act on Connected Data, and
+                Agent Memory and Coordination.
+              </p>
+              <a
+                href="https://github.com/AyushPaul26"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Find the project on GitHub
+                <span class="north-east" aria-hidden="true"></span
+              ></a>
+            </div>
+          </div>
+          <p class="ai-note">
+            OpenAI Codex and ChatGPT assisted with planning, implementation,
+            testing, documentation, and this blog. Human direction shaped the
+            product requirements, priorities, and demo feedback.
+            <a
+              href="https://github.com/AyushPaul26/wemakedevs#ai-assistance-and-participant-contribution"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Disclosure details
+              <span class="north-east" aria-hidden="true"></span
+            ></a>
+          </p>
+        </article>
+      </div>
+    </main>
+    <footer class="site-footer shell">
+      <a class="brand" href="#top"
+        ><img src="/favicon.svg" width="25" height="25" alt="" /><span
+          class="wordmark"
+          >relay.</span
+        ></a
+      ><span>Connected knowledge. Considered action.</span
+      ><a href="#top">Back to top ↑</a>
+    </footer>
+  </body>
+</html>

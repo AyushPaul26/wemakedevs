@@ -14,6 +14,8 @@ Submission tracks: **Company Brain** (lead), **Agents That Act on Connected Data
 
 [Watch the demo video](https://www.youtube.com/watch?v=bvLC4aGHssA). See the [submission summary and judging guide](docs/submission.md) for entry text, demo chapters, access instructions, and the final submission checklist. The bundled Meridian company and sample documents are fictional.
 
+The standalone [Relay build journal](blog/README.md) explains the problem, graph design, approval workflow, and engineering lessons. It includes an interactive dependency illustration and can be deployed separately on Vercel.
+
 ## Graph data model
 
 Company objects use the `Entity` label with a `kind` such as `person`, `team`, `project`, `service`, `document`, `decision`, or `incident`. Workflow and account records use separate labels so execution dependencies do not become company-map dependencies.
