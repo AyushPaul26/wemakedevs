@@ -8,6 +8,7 @@
 | Tagline | A company brain that connects evidence, remembers work, and executes tasks with scoped human approval. |
 | Source code | https://github.com/AyushPaul26/wemakedevs/tree/work |
 | Live application | https://relay-company-brain.onrender.com |
+| Demo video | [Watch the full walkthrough on Google Drive](https://drive.google.com/file/d/1JGadPKCeSPHTBMkJ4H7ncCBbDrHnAsnO/view?usp=sharing) |
 | Lead track | Company Brain |
 | Additional tracks | Agents That Act on Connected Data; Agent Memory and Coordination |
 | Setup and graph model | [README](../README.md) |
@@ -33,7 +34,9 @@ When evidence changes, Relay preserves the previous version, marks affected work
 
 ## Demo video
 
-The reviewed full walkthrough is `Relay_full_walkthrough_minimal_edit (1).mp4`, with a duration of **16:27**. Add the final shareable video URL to the submission form after uploading it to the chosen video host; the video is not stored in this repository. Check that judges can view the link without requesting access and that the submission form has no additional duration restriction.
+[Watch the full demo video on Google Drive](https://drive.google.com/file/d/1JGadPKCeSPHTBMkJ4H7ncCBbDrHnAsnO/view?usp=sharing).
+
+The reviewed full walkthrough is `Relay_full_walkthrough_minimal_edit (1).mp4`, with a duration of **16:27**. Use the linked video in the submission form. Check that judges can view the link without requesting access and that the submission form has no additional duration restriction.
 
 Approximate chapters in that version:
 
@@ -72,7 +75,7 @@ Dependencies and reuse boundaries are documented in [third-party notices](../THI
 
 ## Final submission steps
 
-1. Add the final video URL, repository URL, and live-app URL to the entry.
+1. Copy the demo video, repository, and live-app links from the entry details above into the submission form.
 2. Select Company Brain, Agents That Act on Connected Data, and Agent Memory and Coordination in the submission form, consistent with this entry.
 3. Provide private demo access or point judges to the complete local setup.
 4. Include the AI-assistance disclosure wherever the form requests it.
